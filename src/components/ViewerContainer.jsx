@@ -5,10 +5,11 @@ import { ImageInfoToolbar } from './ImageInfoToolbar';
 async function findImages(folderName) {
   const extensions = ['png', 'jpg', 'jpeg', 'exr', 'hdr'];
   const images = { A: null, B: null };
+  const baseUrl = import.meta.env.BASE_URL;
 
   for (const ext of extensions) {
     if (!images.A) {
-      const aUrl = `/images/${folderName}/A.${ext}`;
+      const aUrl = `${baseUrl}images/${folderName}/A.${ext}`;
       try {
         const resp = await fetch(aUrl, { method: 'HEAD' });
         const contentType = resp.headers.get('content-type') || '';
@@ -18,7 +19,7 @@ async function findImages(folderName) {
       } catch {}
     }
     if (!images.B) {
-      const bUrl = `/images/${folderName}/B.${ext}`;
+      const bUrl = `${baseUrl}images/${folderName}/B.${ext}`;
       try {
         const resp = await fetch(bUrl, { method: 'HEAD' });
         const contentType = resp.headers.get('content-type') || '';
