@@ -1,0 +1,7 @@
+node_modules
+dist
+.DS_Store
+
+# Image folders - only ansel is included as example
+public/images/*
+!public/images/ansel
