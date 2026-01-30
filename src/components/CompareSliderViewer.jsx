@@ -26,7 +26,7 @@ const bgClassMap = {
   bordered: 'bg-white',
 };
 
-export function CompareSliderViewer({ currentFolder, currentComparison, bgOption = 'default', showToolbar = true, onNewComparison, colorPickerEnabled = false, sliderVisible = true }) {
+export function CompareSliderViewer({ currentFolder, currentComparison, bgOption = 'default', showToolbar = true, onNewComparison, colorPickerEnabled = false, sliderVisible = true, sharedZoomPan = null }) {
   const [images, setImages] = useState({ A: null, B: null });
   const [imageDims, setImageDims] = useState({ A: null, B: null });
   const [loading, setLoading] = useState(false);
@@ -36,7 +36,7 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
   const [sliderPosition, setSliderPosition] = useState(50);
   const [activeImage, setActiveImage] = useState(null); // Local state for instant response
 
-  const zoomPan = useZoomPan(imageDims.A, imageDims.B, containerRef);
+  const zoomPan = useZoomPan(imageDims.A, imageDims.B, containerRef, sharedZoomPan);
   const colorPicker = useColorPicker(images.A, images.B, colorPickerEnabled, zoomPan.zoom, zoomPan.pan);
 
   // Load image dimensions when images change

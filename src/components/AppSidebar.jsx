@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
+import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon, EyeIcon, EyeOffIcon, BugIcon } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -97,7 +97,7 @@ export function AppSidebar({
         <SidebarGroupLabel>Viewer</SidebarGroupLabel>
         <div className="flex flex-col gap-1 px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
           <Collapsible open={openFolders['slider-bg']} onOpenChange={() => toggleFolder('slider-bg')}>
-            <div className="flex items-center">
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="sm"
@@ -123,6 +123,16 @@ export function AppSidebar({
                 ) : (
                   <EyeOffIcon className="h-4 w-4 shrink-0" />
                 )}
+              </button>
+              <button
+                onClick={() => onViewModeChange(viewMode === 'predator' ? 'slider' : 'predator')}
+                className={cn(
+                  "h-8 w-8 flex items-center justify-center hover:bg-muted rounded group-data-[collapsible=icon]:hidden",
+                  viewMode === 'predator' && "bg-accent"
+                )}
+                title="Toggle predator heat map view"
+              >
+                <BugIcon className="h-4 w-4 shrink-0" />
               </button>
               <CollapsibleTrigger asChild>
                 <button className="h-8 w-8 flex items-center justify-center hover:bg-muted rounded group-data-[collapsible=icon]:hidden">

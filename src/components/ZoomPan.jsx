@@ -1,12 +1,21 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { ZoomInIcon, ZoomOutIcon, Maximize2Icon } from 'lucide-react';
 
-export function useZoomPan(imageDimsA, imageDimsB, containerRef) {
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+export function useZoomPan(imageDimsA, imageDimsB, containerRef, sharedState = null) {
+  // Use shared state if provided, otherwise use local state
+  const [localZoom, setLocalZoom] = useState(1);
+  const [localPan, setLocalPan] = useState({ x: 0, y: 0 });
+  const [localZoomMode, setLocalZoomMode] = useState('fit');
+
+  const zoom = sharedState?.zoom ?? localZoom;
+  const setZoom = sharedState?.setZoom ?? setLocalZoom;
+  const pan = sharedState?.pan ?? localPan;
+  const setPan = sharedState?.setPan ?? setLocalPan;
+  const zoomMode = sharedState?.zoomMode ?? localZoomMode;
+  const setZoomMode = sharedState?.setZoomMode ?? setLocalZoomMode;
+
   const [isPanning, setIsPanning] = useState(false);
   const [isSpaceHeld, setIsSpaceHeld] = useState(false);
-  const [zoomMode, setZoomMode] = useState('fit'); // 'fit', 'matchA', 'matchB'
   const lastPanPoint = useRef({ x: 0, y: 0 });
 
   // Track spacebar for pan mode

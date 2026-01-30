@@ -5,6 +5,7 @@ import { useImageCache } from '@/hooks/useImageCache';
 import { AppSidebar } from '@/components/AppSidebar';
 import { ViewerContainer } from '@/components/ViewerContainer';
 import { CompareSliderViewer } from '@/components/CompareSliderViewer';
+import { PredatorView } from '@/components/PredatorView';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
 export function App() {
@@ -32,6 +33,20 @@ export function App() {
     const saved = localStorage.getItem('slider-visible');
     return saved !== null ? saved === 'true' : true;
   });
+
+  // Shared zoom/pan state across all viewers
+  const [sharedZoom, setSharedZoom] = useState(1);
+  const [sharedPan, setSharedPan] = useState({ x: 0, y: 0 });
+  const [sharedZoomMode, setSharedZoomMode] = useState('fit');
+
+  const sharedZoomPan = {
+    zoom: sharedZoom,
+    setZoom: setSharedZoom,
+    pan: sharedPan,
+    setPan: setSharedPan,
+    zoomMode: sharedZoomMode,
+    setZoomMode: setSharedZoomMode,
+  };
 
   // Preload images for smoother navigation
   useImageCache(folders, localComparisons, currentFolder);
@@ -69,6 +84,13 @@ export function App() {
     setLocalComparisons(prev => [...prev, comparison]);
     setCurrentFolder(comparison.id);
   };
+
+  // Reset zoom/pan when changing comparisons
+  useEffect(() => {
+    setSharedZoom(1);
+    setSharedPan({ x: 0, y: 0 });
+    setSharedZoomMode('fit');
+  }, [currentFolder]);
 
   // Get current comparison data (either from server folders or local)
   const getCurrentComparison = () => {
@@ -122,6 +144,12 @@ export function App() {
       if (e.key === '/') {
         e.preventDefault();
         handleSliderVisibleToggle();
+        return;
+      }
+
+      // 3 to toggle predator view
+      if (e.key === '3') {
+        setViewMode(prev => prev === 'predator' ? 'slider' : 'predator');
         return;
       }
 
@@ -180,6 +208,16 @@ export function App() {
             onNewComparison={handleNewComparison}
             colorPickerEnabled={colorPickerEnabled}
             sliderVisible={sliderVisible}
+            sharedZoomPan={sharedZoomPan}
+          />
+        </div>
+        <div className={viewMode === 'predator' ? 'h-full' : 'hidden'}>
+          <PredatorView
+            currentFolder={currentFolder}
+            currentComparison={currentComparison}
+            bgOption={bgOption}
+            showToolbar={showToolbar}
+            sharedZoomPan={sharedZoomPan}
           />
         </div>
       </SidebarInset>
