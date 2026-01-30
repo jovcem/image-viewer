@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { PipetteIcon } from 'lucide-react';
 
-export function useColorPicker(imageA, imageB, enabled = false) {
+export function useColorPicker(imageA, imageB, enabled = false, zoom = 1, pan = { x: 0, y: 0 }) {
   const [colorA, setColorA] = useState(null);
   const [colorB, setColorB] = useState(null);
+  const [gridA, setGridA] = useState(null);
+  const [gridB, setGridB] = useState(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [imageCoords, setImageCoords] = useState({ x: 0, y: 0 });
 
@@ -49,11 +51,8 @@ export function useColorPicker(imageA, imageB, enabled = false) {
     };
   }, [imageA, imageB]);
 
-  const getColorAt = useCallback((canvas, img, relX, relY) => {
+  const getColorAtPixel = useCallback((canvas, img, imgX, imgY) => {
     if (!canvas || !img) return null;
-
-    const imgX = Math.floor(relX * img.naturalWidth);
-    const imgY = Math.floor(relY * img.naturalHeight);
 
     if (imgX < 0 || imgX >= img.naturalWidth || imgY < 0 || imgY >= img.naturalHeight) {
       return null;
@@ -72,6 +71,34 @@ export function useColorPicker(imageA, imageB, enabled = false) {
       return null;
     }
   }, []);
+
+  // Get color at relative position (0-1), mapping to the image's own dimensions
+  const getColorAt = useCallback((canvas, img, relX, relY) => {
+    if (!canvas || !img) return null;
+    const imgX = Math.floor(relX * img.naturalWidth);
+    const imgY = Math.floor(relY * img.naturalHeight);
+    return getColorAtPixel(canvas, img, imgX, imgY);
+  }, [getColorAtPixel]);
+
+  // Get a 3x3 grid of pixels centered on relative position (0-1)
+  const getPixelGrid = useCallback((canvas, img, relX, relY) => {
+    if (!canvas || !img) return null;
+
+    const centerX = Math.floor(relX * img.naturalWidth);
+    const centerY = Math.floor(relY * img.naturalHeight);
+
+    const grid = [];
+    for (let dy = -1; dy <= 1; dy++) {
+      const row = [];
+      for (let dx = -1; dx <= 1; dx++) {
+        const x = centerX + dx;
+        const y = centerY + dy;
+        row.push(getColorAtPixel(canvas, img, x, y));
+      }
+      grid.push(row);
+    }
+    return grid;
+  }, [getColorAtPixel]);
 
   const handleMouseMove = useCallback((e) => {
     if (!enabled || !containerRef.current) return;
@@ -103,14 +130,25 @@ export function useColorPicker(imageA, imageB, enabled = false) {
       offsetY = 0;
     }
 
+    // Account for zoom/pan transform (origin is center of container)
+    // Transform is: translate(pan) scale(zoom) with origin at center
+    // To invert: subtract center, subtract pan, divide by zoom, add center
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    const untransformedX = (x - centerX - pan.x) / zoom + centerX;
+    const untransformedY = (y - centerY - pan.y) / zoom + centerY;
+
     // Calculate position relative to the actual image (not container)
-    const imgX = x - offsetX;
-    const imgY = y - offsetY;
+    const imgX = untransformedX - offsetX;
+    const imgY = untransformedY - offsetY;
 
     // Check if cursor is within the image bounds
     if (imgX < 0 || imgX > displayWidth || imgY < 0 || imgY > displayHeight) {
       setColorA(null);
       setColorB(null);
+      setGridA(null);
+      setGridB(null);
       return;
     }
 
@@ -118,34 +156,73 @@ export function useColorPicker(imageA, imageB, enabled = false) {
     const relX = imgX / displayWidth;
     const relY = imgY / displayHeight;
 
-    setPosition({ x: e.clientX, y: e.clientY });
-    setImageCoords({
-      x: Math.floor(relX * img.naturalWidth),
-      y: Math.floor(relY * img.naturalHeight)
-    });
+    // Calculate pixel coordinates (for display, using image A as reference)
+    const pixelX = Math.floor(relX * img.naturalWidth);
+    const pixelY = Math.floor(relY * img.naturalHeight);
 
+    setPosition({ x: e.clientX, y: e.clientY });
+    setImageCoords({ x: pixelX, y: pixelY });
+
+    // Use relative coords so each image maps to its own pixel dimensions
     const cA = getColorAt(canvasARef.current, imgARef.current, relX, relY);
     const cB = getColorAt(canvasBRef.current, imgBRef.current, relX, relY);
 
     setColorA(cA);
     setColorB(cB);
-  }, [enabled, getColorAt]);
+
+    // Get 3x3 pixel grids for magnifier
+    setGridA(getPixelGrid(canvasARef.current, imgARef.current, relX, relY));
+    setGridB(getPixelGrid(canvasBRef.current, imgBRef.current, relX, relY));
+  }, [enabled, getColorAt, getPixelGrid, zoom, pan]);
 
   const handleMouseLeave = useCallback(() => {
     setColorA(null);
     setColorB(null);
+    setGridA(null);
+    setGridB(null);
   }, []);
 
   return {
     enabled,
     colorA,
     colorB,
+    gridA,
+    gridB,
     position,
     imageCoords,
     containerRef,
     handleMouseMove,
     handleMouseLeave,
   };
+}
+
+function PixelGrid({ grid, label }) {
+  if (!grid) return null;
+
+  const pixelSize = 16;
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] font-medium text-zinc-400 w-3">{label}</span>
+      <div
+        className="grid gap-0.5 bg-zinc-800 p-0.5 rounded"
+        style={{ gridTemplateColumns: `repeat(3, ${pixelSize}px)` }}
+      >
+        {grid.flat().map((color, i) => (
+          <div
+            key={i}
+            style={{
+              width: pixelSize,
+              height: pixelSize,
+              backgroundColor: color
+                ? `rgb(${color.r}, ${color.g}, ${color.b})`
+                : '#27272a',
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function ColorSwatch({ color, label }) {
@@ -169,7 +246,7 @@ function ColorSwatch({ color, label }) {
   );
 }
 
-export function ColorPickerTooltip({ colorA, colorB, position, imageCoords }) {
+export function ColorPickerTooltip({ colorA, colorB, gridA, gridB, position, imageCoords }) {
   if (!colorA && !colorB) return null;
 
   return (
@@ -181,10 +258,16 @@ export function ColorPickerTooltip({ colorA, colorB, position, imageCoords }) {
       }}
     >
       <div className="bg-zinc-900/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-xl border border-zinc-700/50">
-        <div className="text-[10px] text-zinc-500 mb-1 font-mono">
+        <div className="text-[10px] text-zinc-500 mb-2 font-mono">
           {imageCoords.x}, {imageCoords.y}
         </div>
-        <div className="flex flex-col gap-1">
+        {/* Magnifier grids */}
+        <div className="flex gap-3 mb-2">
+          <PixelGrid grid={gridA} label="A" />
+          <PixelGrid grid={gridB} label="B" />
+        </div>
+        {/* Color values */}
+        <div className="flex flex-col gap-1 pt-2 border-t border-zinc-700/50">
           <ColorSwatch color={colorA} label="A" />
           <ColorSwatch color={colorB} label="B" />
         </div>

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useFolders } from '@/hooks/useFolders';
 import { useTheme } from '@/hooks/useTheme';
+import { useImageCache } from '@/hooks/useImageCache';
 import { AppSidebar } from '@/components/AppSidebar';
 import { ViewerContainer } from '@/components/ViewerContainer';
 import { CompareSliderViewer } from '@/components/CompareSliderViewer';
@@ -27,12 +28,27 @@ export function App() {
     const saved = localStorage.getItem('color-picker-enabled');
     return saved === 'true';
   });
+  const [sliderVisible, setSliderVisible] = useState(() => {
+    const saved = localStorage.getItem('slider-visible');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  // Preload images for smoother navigation
+  useImageCache(folders, localComparisons, currentFolder);
 
   const handleColorPickerToggle = () => {
     const newValue = !colorPickerEnabled;
     setColorPickerEnabled(newValue);
     localStorage.setItem('color-picker-enabled', String(newValue));
   };
+
+  const handleSliderVisibleToggle = useCallback(() => {
+    setSliderVisible(prev => {
+      const newValue = !prev;
+      localStorage.setItem('slider-visible', String(newValue));
+      return newValue;
+    });
+  }, []);
 
   const handleSidebarOpenChange = (open) => {
     setSidebarOpen(open);
@@ -102,6 +118,13 @@ export function App() {
         return;
       }
 
+      // / to toggle slider visibility
+      if (e.key === '/') {
+        e.preventDefault();
+        handleSliderVisibleToggle();
+        return;
+      }
+
       const key = e.key.toUpperCase();
       if (key >= 'A' && key <= 'Z') {
         const index = key.charCodeAt(0) - 65; // A=0, B=1, etc.
@@ -113,7 +136,7 @@ export function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [folders, localComparisons, currentFolder]);
+  }, [folders, localComparisons, currentFolder, handleSliderVisibleToggle]);
 
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={handleSidebarOpenChange}>
@@ -136,6 +159,8 @@ export function App() {
         onShowToolbarChange={handleShowToolbarChange}
         colorPickerEnabled={colorPickerEnabled}
         onColorPickerToggle={handleColorPickerToggle}
+        sliderVisible={sliderVisible}
+        onSliderVisibleToggle={handleSliderVisibleToggle}
       />
       <SidebarInset className="h-screen relative">
         <div className={viewMode === 'jeri' ? 'h-full' : 'hidden'}>
@@ -154,6 +179,7 @@ export function App() {
             showToolbar={showToolbar}
             onNewComparison={handleNewComparison}
             colorPickerEnabled={colorPickerEnabled}
+            sliderVisible={sliderVisible}
           />
         </div>
       </SidebarInset>

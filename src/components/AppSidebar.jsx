@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon } from 'lucide-react';
+import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -78,6 +78,8 @@ export function AppSidebar({
   onShowToolbarChange,
   colorPickerEnabled,
   onColorPickerToggle,
+  sliderVisible,
+  onSliderVisibleToggle,
 }) {
   const { toggleSidebar, open } = useSidebar();
   const [openFolders, setOpenFolders] = useState({});
@@ -108,6 +110,20 @@ export function AppSidebar({
                 <SplitIcon className="h-4 w-4 shrink-0" />
                 <span className="group-data-[collapsible=icon]:hidden">Slider</span>
               </Button>
+              <button
+                onClick={onSliderVisibleToggle}
+                className={cn(
+                  "h-8 w-8 flex items-center justify-center hover:bg-muted rounded group-data-[collapsible=icon]:hidden",
+                  !sliderVisible && "opacity-50"
+                )}
+                title={sliderVisible ? "Single image mode (hold 2 for B)" : "Comparison mode"}
+              >
+                {sliderVisible ? (
+                  <EyeIcon className="h-4 w-4 shrink-0" />
+                ) : (
+                  <EyeOffIcon className="h-4 w-4 shrink-0" />
+                )}
+              </button>
               <CollapsibleTrigger asChild>
                 <button className="h-8 w-8 flex items-center justify-center hover:bg-muted rounded group-data-[collapsible=icon]:hidden">
                   <SettingsIcon className="h-4 w-4 shrink-0" />

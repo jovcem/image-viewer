@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { ReactCompareSlider, ReactCompareSliderImage } from 'react-compare-slider';
 import { EmptyState } from './EmptyState';
 import { ImageInfoToolbar } from './ImageInfoToolbar';
 import { QuickCompareForm } from './QuickCompareForm';
 import { useColorPicker, ColorPickerTooltip } from './ColorPicker';
 import { useZoomPan, ZoomControls } from './ZoomPan';
+import { isImageCached, getImageUrls, getCachedImage } from '@/hooks/useImageCache';
 import { cn } from '@/lib/utils';
 
 function MinimalHandle() {
@@ -25,47 +26,18 @@ const bgClassMap = {
   bordered: 'bg-white',
 };
 
-async function findImages(folderName) {
-  const extensions = ['png', 'jpg', 'jpeg', 'exr', 'hdr'];
-  const images = { A: null, B: null };
-  const baseUrl = import.meta.env.BASE_URL;
-
-  for (const ext of extensions) {
-    if (!images.A) {
-      const aUrl = `${baseUrl}images/${folderName}/A.${ext}`;
-      try {
-        const resp = await fetch(aUrl, { method: 'HEAD' });
-        const contentType = resp.headers.get('content-type') || '';
-        if (resp.ok && contentType.startsWith('image/')) {
-          images.A = aUrl;
-        }
-      } catch {}
-    }
-    if (!images.B) {
-      const bUrl = `${baseUrl}images/${folderName}/B.${ext}`;
-      try {
-        const resp = await fetch(bUrl, { method: 'HEAD' });
-        const contentType = resp.headers.get('content-type') || '';
-        if (resp.ok && contentType.startsWith('image/')) {
-          images.B = bUrl;
-        }
-      } catch {}
-    }
-    if (images.A && images.B) break;
-  }
-
-  return images;
-}
-
-export function CompareSliderViewer({ currentFolder, currentComparison, bgOption = 'default', showToolbar = true, onNewComparison, colorPickerEnabled = false }) {
+export function CompareSliderViewer({ currentFolder, currentComparison, bgOption = 'default', showToolbar = true, onNewComparison, colorPickerEnabled = false, sliderVisible = true }) {
   const [images, setImages] = useState({ A: null, B: null });
   const [imageDims, setImageDims] = useState({ A: null, B: null });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [ready, setReady] = useState(false); // For fade-in transition
   const containerRef = useRef(null);
+  const [sliderPosition, setSliderPosition] = useState(50);
+  const [activeImage, setActiveImage] = useState(null); // Local state for instant response
 
-  const colorPicker = useColorPicker(images.A, images.B, colorPickerEnabled);
   const zoomPan = useZoomPan(imageDims.A, imageDims.B, containerRef);
+  const colorPicker = useColorPicker(images.A, images.B, colorPickerEnabled, zoomPan.zoom, zoomPan.pan);
 
   // Load image dimensions when images change
   useEffect(() => {
@@ -80,6 +52,12 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
           resolve(null);
           return;
         }
+        // Use cached image if available
+        const cached = getCachedImage(src);
+        if (cached) {
+          resolve({ width: cached.naturalWidth, height: cached.naturalHeight });
+          return;
+        }
         const img = new Image();
         img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
         img.onerror = () => resolve(null);
@@ -92,43 +70,101 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
     });
   }, [images.A, images.B]);
 
-  // Reset zoom when switching comparisons
+  // Keyboard shortcuts: 1 = show A, 2 = show B
   useEffect(() => {
-    zoomPan.reset();
-  }, [currentFolder]);
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === '1') {
+        setActiveImage('A');
+      } else if (e.key === '2') {
+        setActiveImage('B');
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.key === '1' || e.key === '2') {
+        setActiveImage(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  // Determine which image to show when slider is hidden (single image mode)
+  const showingImage = !sliderVisible ? (activeImage === 'B' ? 'B' : 'A') : null;
+
+  // Memoize image style to prevent unnecessary re-renders
+  const imageStyle = useMemo(() => ({
+    transform: zoomPan.transform,
+    transformOrigin: 'center center',
+    transition: zoomPan.isPanning ? 'none' : 'transform 0.1s ease-out',
+    objectFit: 'contain',
+  }), [zoomPan.transform, zoomPan.isPanning]);
 
   useEffect(() => {
     if (!currentFolder || !currentComparison) {
       setImages({ A: null, B: null });
+      setReady(false);
       return;
     }
 
     let cancelled = false;
+    setReady(false);
 
     async function load() {
-      setLoading(true);
-      setError('');
-
-      let found;
-
-      if (currentComparison.isLocal) {
-        found = {
-          A: currentComparison.images.A.url,
-          B: currentComparison.images.B.url,
-        };
-      } else {
-        found = await findImages(currentComparison.folder);
-      }
+      // Use shared URL cache - avoids duplicate HEAD requests
+      const found = await getImageUrls(
+        currentComparison.folder,
+        currentComparison.isLocal ? currentComparison : null
+      );
 
       if (cancelled) return;
+
+      // Check if images are already cached
+      const isCached = found.A && found.B && isImageCached(found.A) && isImageCached(found.B);
+
+      if (!isCached) {
+        setLoading(true);
+      }
+      setError('');
 
       if (!found.A && !found.B) {
         setError(`No A or B images found in "${currentFolder}"`);
         setImages({ A: null, B: null });
+        setLoading(false);
       } else {
         setImages(found);
+        // Small delay for fade-in effect, skip if cached
+        if (isCached) {
+          setReady(true);
+          setLoading(false);
+        } else {
+          // Wait for images to actually load in DOM
+          const imgA = new Image();
+          const imgB = new Image();
+          let loadedCount = 0;
+          const onLoad = () => {
+            loadedCount++;
+            if (loadedCount === 2 && !cancelled) {
+              setReady(true);
+              setLoading(false);
+            }
+          };
+          imgA.onload = onLoad;
+          imgA.onerror = onLoad;
+          imgB.onload = onLoad;
+          imgB.onerror = onLoad;
+          imgA.src = found.A;
+          imgB.src = found.B;
+        }
       }
-      setLoading(false);
     }
 
     load();
@@ -146,7 +182,7 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
     );
   }
 
-  if (loading) {
+  if (loading && !images.A && !images.B) {
     return (
       <div className="h-full overflow-hidden relative">
         <EmptyState>
@@ -180,13 +216,6 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
 
   const isBordered = bgOption === 'bordered';
 
-  const imageStyle = {
-    transform: zoomPan.transform,
-    transformOrigin: 'center center',
-    transition: zoomPan.isPanning ? 'none' : 'transform 0.1s ease-out',
-    objectFit: 'contain',
-  };
-
   return (
     <div className={cn("h-full w-full overflow-hidden relative", bgClassMap[bgOption])}>
       <div className={cn(
@@ -215,29 +244,71 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
           onAuxClick={(e) => e.preventDefault()}
           onMouseUp={zoomPan.handleMouseUp}
         >
-          <ReactCompareSlider
-            itemOne={
-              <ReactCompareSliderImage
-                src={images.A}
-                alt="Image A"
-                style={imageStyle}
-              />
-            }
-            itemTwo={
-              <ReactCompareSliderImage
-                src={images.B}
-                alt="Image B"
-                style={imageStyle}
-              />
-            }
-            handle={<MinimalHandle />}
+          {/* Slider mode */}
+          <div
+            className="absolute inset-0"
             style={{
-              height: '100%',
-              width: '100%',
-              pointerEvents: zoomPan.isSpaceHeld ? 'none' : 'auto',
+              visibility: sliderVisible ? 'visible' : 'hidden',
+              zIndex: sliderVisible ? 1 : 0,
             }}
-          />
-          {showToolbar && <ImageInfoToolbar imageA={images.A} imageB={images.B} />}
+          >
+            <ReactCompareSlider
+              itemOne={
+                <ReactCompareSliderImage
+                  src={images.A}
+                  alt="Image A"
+                  style={imageStyle}
+                />
+              }
+              itemTwo={
+                <ReactCompareSliderImage
+                  src={images.B}
+                  alt="Image B"
+                  style={imageStyle}
+                />
+              }
+              handle={!activeImage ? <MinimalHandle /> : <div />}
+              position={activeImage === 'A' ? 100 : activeImage === 'B' ? 0 : sliderPosition}
+              onPositionChange={(pos) => {
+                if (!activeImage) setSliderPosition(pos);
+              }}
+              style={{
+                height: '100%',
+                width: '100%',
+                pointerEvents: zoomPan.isSpaceHeld || activeImage ? 'none' : 'auto',
+              }}
+            />
+          </div>
+          {/* Single image mode */}
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{
+              visibility: !sliderVisible ? 'visible' : 'hidden',
+              zIndex: !sliderVisible ? 1 : 0,
+            }}
+          >
+            <img
+              src={images.A}
+              alt="Image A"
+              className="absolute max-w-full max-h-full"
+              style={{
+                ...imageStyle,
+                opacity: showingImage === 'A' ? 1 : 0,
+                pointerEvents: 'none',
+              }}
+            />
+            <img
+              src={images.B}
+              alt="Image B"
+              className="absolute max-w-full max-h-full"
+              style={{
+                ...imageStyle,
+                opacity: showingImage === 'B' ? 1 : 0,
+                pointerEvents: 'none',
+              }}
+            />
+          </div>
+          {showToolbar && <ImageInfoToolbar imageA={images.A} imageB={images.B} activeImage={!sliderVisible ? showingImage : null} />}
           <div className="absolute top-2 right-2 z-10">
             <ZoomControls
               zoom={zoomPan.zoom}
@@ -258,6 +329,8 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
         <ColorPickerTooltip
           colorA={colorPicker.colorA}
           colorB={colorPicker.colorB}
+          gridA={colorPicker.gridA}
+          gridB={colorPicker.gridB}
           position={colorPicker.position}
           imageCoords={colorPicker.imageCoords}
         />
