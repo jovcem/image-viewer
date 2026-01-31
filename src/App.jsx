@@ -80,17 +80,23 @@ export function App() {
     localStorage.setItem('viewer-bg-option', option);
   };
 
-  const handleNewComparison = (comparison) => {
-    setLocalComparisons(prev => [...prev, comparison]);
-    setCurrentFolder(comparison.id);
-  };
-
-  // Reset zoom/pan when changing comparisons
-  useEffect(() => {
+  const resetZoom = useCallback(() => {
     setSharedZoom(1);
     setSharedPan({ x: 0, y: 0 });
     setSharedZoomMode('fit');
-  }, [currentFolder]);
+  }, []);
+
+  const handleNewComparison = useCallback((comparison) => {
+    setLocalComparisons(prev => [...prev, comparison]);
+    setCurrentFolder(comparison.id);
+    resetZoom();
+  }, [resetZoom]);
+
+  // Sidebar click resets zoom, keyboard navigation preserves it
+  const handleFolderSelect = useCallback((folder) => {
+    setCurrentFolder(folder);
+    resetZoom();
+  }, [resetZoom]);
 
   // Get current comparison data (either from server folders or local)
   const getCurrentComparison = () => {
@@ -173,7 +179,7 @@ export function App() {
         folderImages={folderImages}
         localComparisons={localComparisons}
         currentFolder={currentFolder}
-        onFolderSelect={setCurrentFolder}
+        onFolderSelect={handleFolderSelect}
         loading={loading}
         theme={theme}
         onThemeToggle={toggleTheme}
