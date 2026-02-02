@@ -33,6 +33,7 @@ export function App() {
     const saved = localStorage.getItem('slider-visible');
     return saved !== null ? saved === 'true' : true;
   });
+  const [annotationsEnabled, setAnnotationsEnabled] = useState(false);
 
   // Shared zoom/pan state across all viewers
   const [sharedZoom, setSharedZoom] = useState(1);
@@ -63,6 +64,10 @@ export function App() {
       localStorage.setItem('slider-visible', String(newValue));
       return newValue;
     });
+  }, []);
+
+  const handleAnnotationsToggle = useCallback(() => {
+    setAnnotationsEnabled(prev => !prev);
   }, []);
 
   const handleSidebarOpenChange = (open) => {
@@ -159,6 +164,12 @@ export function App() {
         return;
       }
 
+      // 4 to toggle annotations
+      if (e.key === '4') {
+        handleAnnotationsToggle();
+        return;
+      }
+
       const key = e.key.toUpperCase();
       if (key >= 'A' && key <= 'Z') {
         const index = key.charCodeAt(0) - 65; // A=0, B=1, etc.
@@ -170,7 +181,7 @@ export function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [folders, localComparisons, currentFolder, handleSliderVisibleToggle]);
+  }, [folders, localComparisons, currentFolder, handleSliderVisibleToggle, handleAnnotationsToggle]);
 
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={handleSidebarOpenChange}>
@@ -197,14 +208,16 @@ export function App() {
         onSliderVisibleToggle={handleSliderVisibleToggle}
       />
       <SidebarInset className="h-screen relative">
-        <div className={viewMode === 'jeri' ? 'h-full' : 'hidden'}>
-          <ViewerContainer
-            currentFolder={currentFolder}
-            currentComparison={currentComparison}
-            theme={theme}
-            showToolbar={showToolbar}
-          />
-        </div>
+        {viewMode === 'jeri' && (
+          <div className="h-full">
+            <ViewerContainer
+              currentFolder={currentFolder}
+              currentComparison={currentComparison}
+              theme={theme}
+              showToolbar={showToolbar}
+            />
+          </div>
+        )}
         <div className={viewMode === 'slider' ? 'h-full' : 'hidden'}>
           <CompareSliderViewer
             currentFolder={currentFolder}
@@ -215,6 +228,7 @@ export function App() {
             colorPickerEnabled={colorPickerEnabled}
             sliderVisible={sliderVisible}
             sharedZoomPan={sharedZoomPan}
+            annotationsEnabled={annotationsEnabled}
           />
         </div>
         <div className={viewMode === 'predator' ? 'h-full' : 'hidden'}>

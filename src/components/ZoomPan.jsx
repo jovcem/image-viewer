@@ -6,6 +6,7 @@ export function useZoomPan(imageDimsA, imageDimsB, containerRef, sharedState = n
   const [localZoom, setLocalZoom] = useState(1);
   const [localPan, setLocalPan] = useState({ x: 0, y: 0 });
   const [localZoomMode, setLocalZoomMode] = useState('fit');
+  const [containerEl, setContainerEl] = useState(null);
 
   const zoom = sharedState?.zoom ?? localZoom;
   const setZoom = sharedState?.setZoom ?? setLocalZoom;
@@ -75,13 +76,36 @@ export function useZoomPan(imageDimsA, imageDimsB, containerRef, sharedState = n
     return imageDims.width / displayedWidth;
   }, [containerRef]);
 
-  const handleWheel = useCallback((e) => {
-    e.preventDefault();
-    setZoomMode(null); // Clear mode when manually zooming
+  // Use refs to avoid stale closures in wheel handler
+  const setZoomRef = useRef(setZoom);
+  const setZoomModeRef = useRef(setZoomMode);
+  useEffect(() => {
+    setZoomRef.current = setZoom;
+    setZoomModeRef.current = setZoomMode;
+  }, [setZoom, setZoomMode]);
 
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setZoom(z => Math.min(Math.max(z * delta, 0.1), 20));
-  }, []);
+  // Attach wheel listener with passive: false to allow preventDefault
+  useEffect(() => {
+    if (!containerEl) return;
+
+    const wheelHandler = (e) => {
+      e.preventDefault();
+      setZoomModeRef.current(null); // Clear mode when manually zooming
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      setZoomRef.current(z => Math.min(Math.max(z * delta, 0.1), 20));
+    };
+
+    containerEl.addEventListener('wheel', wheelHandler, { passive: false });
+    return () => containerEl.removeEventListener('wheel', wheelHandler);
+  }, [containerEl]);
+
+  // Callback ref to track container element
+  const setContainerRef = useCallback((el) => {
+    setContainerEl(el);
+    if (containerRef) {
+      containerRef.current = el;
+    }
+  }, [containerRef]);
 
   const handleMouseDown = useCallback((e) => {
     // Start panning when space is held and left click, or middle mouse
@@ -183,7 +207,7 @@ export function useZoomPan(imageDimsA, imageDimsB, containerRef, sharedState = n
     zoomMode,
     transform,
     displayPercentage: getDisplayPercentage(),
-    handleWheel,
+    setContainerRef,
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
@@ -219,7 +243,7 @@ export function ZoomControls({ zoom, zoomMode, displayPercentage, onZoomIn, onZo
       <button
         onClick={onReset}
         className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${
-          zoomMode === 'fit'
+          zoom === 1
             ? 'bg-zinc-600 text-zinc-100'
             : 'hover:bg-zinc-700/80 text-zinc-400 hover:text-zinc-200'
         }`}

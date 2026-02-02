@@ -5,6 +5,8 @@ import { ImageInfoToolbar } from './ImageInfoToolbar';
 import { QuickCompareForm } from './QuickCompareForm';
 import { useColorPicker, ColorPickerTooltip } from './ColorPicker';
 import { useZoomPan, ZoomControls } from './ZoomPan';
+import { useAnnotations } from '@/hooks/useAnnotations';
+import { AnnotationOverlay, AnnotationControls } from './AnnotationOverlay';
 import { isImageCached, getImageUrls, getCachedImage } from '@/hooks/useImageCache';
 import { cn } from '@/lib/utils';
 
@@ -26,7 +28,7 @@ const bgClassMap = {
   bordered: 'bg-white',
 };
 
-export function CompareSliderViewer({ currentFolder, currentComparison, bgOption = 'default', showToolbar = true, onNewComparison, colorPickerEnabled = false, sliderVisible = true, sharedZoomPan = null }) {
+export function CompareSliderViewer({ currentFolder, currentComparison, bgOption = 'default', showToolbar = true, onNewComparison, colorPickerEnabled = false, sliderVisible = true, sharedZoomPan = null, annotationsEnabled = false }) {
   const [images, setImages] = useState({ A: null, B: null });
   const [imageDims, setImageDims] = useState({ A: null, B: null });
   const [loading, setLoading] = useState(false);
@@ -38,6 +40,7 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
 
   const zoomPan = useZoomPan(imageDims.A, imageDims.B, containerRef, sharedZoomPan);
   const colorPicker = useColorPicker(images.A, images.B, colorPickerEnabled, zoomPan.zoom, zoomPan.pan);
+  const annotations = useAnnotations(annotationsEnabled, zoomPan.zoom, zoomPan.pan);
 
   // Load image dimensions when images change
   useEffect(() => {
@@ -226,23 +229,35 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
           ref={(el) => {
             containerRef.current = el;
             colorPicker.containerRef.current = el;
+            annotations.containerRef.current = el;
+            zoomPan.setContainerRef(el);
           }}
           className={cn(
             "h-full w-full relative overflow-hidden",
             isBordered && "rounded-xl bg-white",
-            colorPicker.enabled && !zoomPan.isSpaceHeld && "cursor-crosshair",
+            annotations.enabled && !zoomPan.isSpaceHeld && "cursor-crosshair",
+            colorPicker.enabled && !annotations.enabled && !zoomPan.isSpaceHeld && "cursor-crosshair",
             zoomPan.isSpaceHeld && !zoomPan.isPanning && "cursor-grab",
             zoomPan.isPanning && "cursor-grabbing"
           )}
           onMouseMove={(e) => {
             colorPicker.handleMouseMove(e);
             zoomPan.handleMouseMove(e);
+            annotations.handlePointerMove(e);
           }}
           onMouseLeave={colorPicker.handleMouseLeave}
-          onWheel={zoomPan.handleWheel}
-          onMouseDown={zoomPan.handleMouseDown}
+          onMouseDown={(e) => {
+            if (annotations.enabled && !zoomPan.isSpaceHeld) {
+              annotations.handlePointerDown(e);
+            } else {
+              zoomPan.handleMouseDown(e);
+            }
+          }}
           onAuxClick={(e) => e.preventDefault()}
-          onMouseUp={zoomPan.handleMouseUp}
+          onMouseUp={(e) => {
+            zoomPan.handleMouseUp(e);
+            annotations.handlePointerUp(e);
+          }}
         >
           {/* Slider mode */}
           <div
@@ -323,6 +338,12 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
               hasImageB={!!imageDims.B}
             />
           </div>
+          <AnnotationOverlay
+            annotations={annotations}
+            zoom={zoomPan.zoom}
+            pan={zoomPan.pan}
+          />
+          <AnnotationControls annotations={annotations} />
         </div>
       </div>
       {colorPicker.enabled && (

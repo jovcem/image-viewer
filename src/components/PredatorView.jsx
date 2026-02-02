@@ -245,14 +245,16 @@ export function PredatorView({ currentFolder, currentComparison, bgOption = 'def
         isBordered && "p-6 box-border"
       )}>
         <div
-          ref={containerRef}
+          ref={(el) => {
+            containerRef.current = el;
+            zoomPan.setContainerRef(el);
+          }}
           className={cn(
             "h-full w-full relative overflow-hidden flex items-center justify-center",
             isBordered && "rounded-xl bg-white",
             zoomPan.isSpaceHeld && !zoomPan.isPanning && "cursor-grab",
             zoomPan.isPanning && "cursor-grabbing"
           )}
-          onWheel={zoomPan.handleWheel}
           onMouseDown={zoomPan.handleMouseDown}
           onMouseMove={zoomPan.handleMouseMove}
           onMouseUp={zoomPan.handleMouseUp}
