@@ -305,21 +305,23 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
             <img
               src={images.A}
               alt="Image A"
-              className="absolute max-w-full max-h-full"
+              className="w-full h-full object-contain"
               style={{
                 ...imageStyle,
                 opacity: showingImage === 'A' ? 1 : 0,
                 pointerEvents: 'none',
+                position: 'absolute',
               }}
             />
             <img
               src={images.B}
               alt="Image B"
-              className="absolute max-w-full max-h-full"
+              className="w-full h-full object-contain"
               style={{
                 ...imageStyle,
                 opacity: showingImage === 'B' ? 1 : 0,
                 pointerEvents: 'none',
+                position: 'absolute',
               }}
             />
           </div>
