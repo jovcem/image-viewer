@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
+const ENABLE_PUBLIC_FOLDERS = import.meta.env.VITE_ENABLE_PUBLIC_FOLDERS === 'true';
+
 async function findImagesInFolder(folderName, baseUrl) {
   const extensions = ['png', 'jpg', 'jpeg', 'exr', 'hdr'];
   const images = [];
@@ -28,6 +30,13 @@ export function useFolders() {
   const [error, setError] = useState(null);
 
   const fetchFolders = useCallback(async () => {
+    if (!ENABLE_PUBLIC_FOLDERS) {
+      setFolders([]);
+      setFolderImages({});
+      setLoading(false);
+      return;
+    }
+
     try {
       // Try API first (for dev), fall back to static folders.json (for production/GitHub Pages)
       let folderList = [];
@@ -42,6 +51,8 @@ export function useFolders() {
           folderList = data.folders || [];
         }
       }
+      // Natural sort: v1, v2, v10 instead of v1, v10, v2
+      folderList.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
       setFolders(folderList);
 
       // Fetch images for each folder

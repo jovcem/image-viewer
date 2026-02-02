@@ -28,7 +28,7 @@ const bgClassMap = {
   bordered: 'bg-white',
 };
 
-export function CompareSliderViewer({ currentFolder, currentComparison, bgOption = 'default', showToolbar = true, onNewComparison, colorPickerEnabled = false, sliderVisible = true, sharedZoomPan = null, annotationsEnabled = false }) {
+export function CompareSliderViewer({ currentFolder, currentComparison, bgOption = 'default', showToolbar = true, onNewComparison, colorPickerEnabled = false, sliderVisible = true, sharedZoomPan = null, annotationsEnabled = false, annotationsRef = null }) {
   const [images, setImages] = useState({ A: null, B: null });
   const [imageDims, setImageDims] = useState({ A: null, B: null });
   const [loading, setLoading] = useState(false);
@@ -41,6 +41,13 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
   const zoomPan = useZoomPan(imageDims.A, imageDims.B, containerRef, sharedZoomPan);
   const colorPicker = useColorPicker(images.A, images.B, colorPickerEnabled, zoomPan.zoom, zoomPan.pan);
   const annotations = useAnnotations(annotationsEnabled, zoomPan.zoom, zoomPan.pan);
+
+  // Expose annotations to parent via ref for sharing
+  useEffect(() => {
+    if (annotationsRef) {
+      annotationsRef.current = annotations;
+    }
+  }, [annotationsRef, annotations]);
 
   // Load image dimensions when images change
   useEffect(() => {

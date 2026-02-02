@@ -14,7 +14,7 @@ const bgClassMap = {
   bordered: 'bg-white',
 };
 
-function HeatMapLegend({ stats, sensitivity, onSensitivityChange, mode, onModeChange }) {
+function HeatMapLegend({ stats, sensitivity, onSensitivityChange, mode, onModeChange, generationTime }) {
   const [localValue, setLocalValue] = useState(sensitivity);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -29,16 +29,17 @@ function HeatMapLegend({ stats, sensitivity, onSensitivityChange, mode, onModeCh
     <div className="absolute bottom-4 left-4 z-10 bg-zinc-900/90 backdrop-blur-sm rounded-lg p-3 border border-zinc-700/50">
       <div className="text-[11px] text-zinc-400 mb-2 font-medium">Difference</div>
       <div className="flex gap-1 mb-2">
-        {['rgb', 'luma', 'hue'].map(m => (
+        {[{ key: 'rgb', label: 'RGB', shortcut: '7' }, { key: 'luma', label: 'Luma', shortcut: '8' }, { key: 'hue', label: 'Hue', shortcut: '9' }].map(m => (
           <button
-            key={m}
-            onClick={() => onModeChange(m)}
+            key={m.key}
+            onClick={() => onModeChange(m.key)}
             className={cn(
               "px-2 py-1 text-[10px] rounded transition-colors",
-              mode === m ? "bg-zinc-600 text-zinc-100" : "text-zinc-400 hover:bg-zinc-700/50"
+              mode === m.key ? "bg-zinc-600 text-zinc-100" : "text-zinc-400 hover:bg-zinc-700/50"
             )}
+            title={`${m.label} mode (${m.shortcut})`}
           >
-            {m === 'rgb' ? 'RGB' : m === 'luma' ? 'Luma' : 'Hue'}
+            {m.label}
           </button>
         ))}
       </div>
@@ -90,7 +91,11 @@ function HeatMapLegend({ stats, sensitivity, onSensitivityChange, mode, onModeCh
       {stats && (
         <div className="mt-2 pt-2 border-t border-zinc-700/50 text-[10px] text-zinc-400 space-y-0.5">
           <div>Changed pixels: <span className="text-zinc-300">{stats.diffPercentage}%</span></div>
+          <div>Above threshold: <span className="text-zinc-300">{stats.aboveThresholdPercentage}%</span></div>
           <div>Avg diff: <span className="text-zinc-300">{stats.avgDiff}</span> / Max: <span className="text-zinc-300">{stats.maxDiff}</span></div>
+          {generationTime !== null && (
+            <div>Generated in: <span className="text-zinc-300">{generationTime}ms</span></div>
+          )}
         </div>
       )}
     </div>
@@ -121,7 +126,22 @@ export function PredatorView({ currentFolder, currentComparison, bgOption = 'def
     localStorage.setItem('predator-mode', newMode);
   };
 
-  const { heatMapUrl, loading: heatMapLoading, error: heatMapError, dimensions, stats } = useHeatMap(images.A, images.B, sensitivity, mode);
+  // Keyboard shortcuts for mode switching: 7=RGB, 8=Luma, 9=Hue
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === '7') handleModeChange('rgb');
+      else if (e.key === '8') handleModeChange('luma');
+      else if (e.key === '9') handleModeChange('hue');
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const { heatMapUrl, loading: heatMapLoading, error: heatMapError, dimensions, stats, generationTime } = useHeatMap(images.A, images.B, sensitivity, mode);
 
   const zoomPan = useZoomPan(dimensions, dimensions, containerRef, sharedZoomPan);
 
@@ -267,7 +287,7 @@ export function PredatorView({ currentFolder, currentComparison, bgOption = 'def
               style={imageStyle}
             />
           )}
-          <HeatMapLegend stats={stats} sensitivity={sensitivity} onSensitivityChange={handleSensitivityChange} mode={mode} onModeChange={handleModeChange} />
+          <HeatMapLegend stats={stats} sensitivity={sensitivity} onSensitivityChange={handleSensitivityChange} mode={mode} onModeChange={handleModeChange} generationTime={generationTime} />
           {showToolbar && (
             <div className="absolute top-2 right-2 z-10">
               <ZoomControls

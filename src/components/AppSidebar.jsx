@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon, EyeIcon, EyeOffIcon, BugIcon } from 'lucide-react';
+import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon, EyeIcon, EyeOffIcon, BugIcon, PencilIcon } from 'lucide-react';
+import { ShareButton } from './ShareButton';
 import {
   Sidebar,
   SidebarContent,
@@ -80,6 +81,12 @@ export function AppSidebar({
   onColorPickerToggle,
   sliderVisible,
   onSliderVisibleToggle,
+  annotationsEnabled,
+  onAnnotationsToggle,
+  onShare,
+  shareEnabled,
+  sharing,
+  uploadProgress,
 }) {
   const { toggleSidebar, open } = useSidebar();
   const [openFolders, setOpenFolders] = useState({});
@@ -104,36 +111,12 @@ export function AppSidebar({
                 onClick={() => onViewModeChange('slider')}
                 className={cn(
                   "justify-start gap-2 h-8 px-2 flex-1 cursor-pointer group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
-                  viewMode === 'slider' && "bg-accent"
+                  (viewMode === 'slider' || viewMode === 'predator') && "bg-accent"
                 )}
               >
                 <SplitIcon className="h-4 w-4 shrink-0" />
                 <span className="group-data-[collapsible=icon]:hidden">Slider</span>
               </Button>
-              <button
-                onClick={onSliderVisibleToggle}
-                className={cn(
-                  "h-8 w-8 flex items-center justify-center hover:bg-muted rounded group-data-[collapsible=icon]:hidden",
-                  !sliderVisible && "opacity-50"
-                )}
-                title={sliderVisible ? "Single image mode (hold 2 for B)" : "Comparison mode"}
-              >
-                {sliderVisible ? (
-                  <EyeIcon className="h-4 w-4 shrink-0" />
-                ) : (
-                  <EyeOffIcon className="h-4 w-4 shrink-0" />
-                )}
-              </button>
-              <button
-                onClick={() => onViewModeChange(viewMode === 'predator' ? 'slider' : 'predator')}
-                className={cn(
-                  "h-8 w-8 flex items-center justify-center hover:bg-muted rounded group-data-[collapsible=icon]:hidden",
-                  viewMode === 'predator' && "bg-accent"
-                )}
-                title="Toggle predator heat map view"
-              >
-                <BugIcon className="h-4 w-4 shrink-0" />
-              </button>
               <CollapsibleTrigger asChild>
                 <button className="h-8 w-8 flex items-center justify-center hover:bg-muted rounded group-data-[collapsible=icon]:hidden">
                   <SettingsIcon className="h-4 w-4 shrink-0" />
@@ -169,7 +152,51 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent className="flex-1">
         <SidebarGroup>
-          <div className="px-2 pt-2 pb-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+          <div className="flex items-center gap-1 px-2 pb-3 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onSliderVisibleToggle}
+              className={cn("h-8 w-8 cursor-pointer", !sliderVisible && "opacity-50")}
+              title={sliderVisible ? "Hide slider (show single image)" : "Show slider (compare mode)"}
+            >
+              {sliderVisible ? <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onColorPickerToggle}
+              className={cn("h-8 w-8 cursor-pointer", !colorPickerEnabled && "opacity-50")}
+              title={colorPickerEnabled ? "Disable color picker" : "Enable color picker"}
+            >
+              <PipetteIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onViewModeChange(viewMode === 'predator' ? 'slider' : 'predator')}
+              className={cn("h-8 w-8 cursor-pointer", viewMode !== 'predator' && "opacity-50")}
+              title="Toggle predator heat map view (3)"
+            >
+              <BugIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onAnnotationsToggle}
+              className={cn("h-8 w-8 cursor-pointer", !annotationsEnabled && "opacity-50")}
+              title={annotationsEnabled ? "Disable annotations (4)" : "Enable annotations (4)"}
+            >
+              <PencilIcon className="h-4 w-4" />
+            </Button>
+            <ShareButton
+              onShare={onShare}
+              disabled={!shareEnabled}
+              sharing={sharing}
+              uploadProgress={uploadProgress}
+            />
+          </div>
+          <div className="px-2 pt-1 pb-4 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
             <NewComparisonDialog onCreated={onNewComparison} />
           </div>
           <SidebarGroupContent>
@@ -300,17 +327,6 @@ export function AppSidebar({
               title={showToolbar ? "Hide info toolbar" : "Show info toolbar"}
             >
               <InfoIcon className="h-4 w-4" />
-              <span className="sr-only">Toggle info toolbar</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onColorPickerToggle}
-              className={cn("h-8 w-8 cursor-pointer", !colorPickerEnabled && "opacity-50")}
-              title={colorPickerEnabled ? "Disable color picker" : "Enable color picker"}
-            >
-              <PipetteIcon className="h-4 w-4" />
-              <span className="sr-only">Toggle color picker</span>
             </Button>
             <Button
               variant="ghost"
@@ -323,7 +339,6 @@ export function AppSidebar({
               ) : (
                 <PanelLeftIcon className="h-4 w-4" />
               )}
-              <span className="sr-only">Toggle sidebar</span>
             </Button>
           </div>
         </div>

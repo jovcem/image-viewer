@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useFolders } from '@/hooks/useFolders';
 import { useTheme } from '@/hooks/useTheme';
 import { useImageCache } from '@/hooks/useImageCache';
+import { useShare } from '@/hooks/useShare';
 import { AppSidebar } from '@/components/AppSidebar';
 import { ViewerContainer } from '@/components/ViewerContainer';
 import { CompareSliderViewer } from '@/components/CompareSliderViewer';
@@ -11,9 +12,13 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 export function App() {
   const { folders, folderImages, loading, refetch } = useFolders();
   const { theme, toggleTheme } = useTheme();
+  const { shareComparison, loadSharedComparison, sharing, uploadProgress, isConfigured: shareConfigured } = useShare();
   const [currentFolder, setCurrentFolder] = useState(null);
   const [viewMode, setViewMode] = useState('slider');
   const [localComparisons, setLocalComparisons] = useState([]);
+  const [sharedLoadError, setSharedLoadError] = useState(null);
+  const annotationsRef = useRef(null);
+  const shareLoadedRef = useRef(null);
   const [bgOption, setBgOption] = useState(() => {
     return localStorage.getItem('viewer-bg-option') || 'default';
   });
@@ -123,6 +128,95 @@ export function App() {
 
   const currentComparison = getCurrentComparison();
 
+  // Load shared comparison from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shareId = params.get('share');
+
+    // Skip if no share ID, not configured, or already loaded this share
+    if (!shareId || !shareConfigured || shareLoadedRef.current === shareId) {
+      return;
+    }
+
+    // Mark as loading to prevent duplicate loads (React StrictMode)
+    shareLoadedRef.current = shareId;
+
+    loadSharedComparison(shareId)
+      .then((shared) => {
+        // Create a local comparison from the shared data
+        const comparison = {
+          id: `shared-${shared.id}`,
+          name: shared.name || 'Shared Comparison',
+          images: {
+            A: { name: 'A', url: shared.imageA },
+            B: { name: 'B', url: shared.imageB },
+          },
+          isShared: true,
+          annotations: shared.annotations,
+        };
+        setLocalComparisons(prev => {
+          // Don't add if already exists
+          if (prev.some(c => c.id === comparison.id)) {
+            return prev;
+          }
+          return [...prev, comparison];
+        });
+        setCurrentFolder(comparison.id);
+
+        // Set view mode if specified
+        if (shared.viewMode) {
+          setViewMode(shared.viewMode);
+        }
+      })
+      .catch((err) => {
+        setSharedLoadError(err.message);
+        console.error('Failed to load shared comparison:', err);
+        // Reset so user can retry
+        shareLoadedRef.current = null;
+      });
+  }, [shareConfigured]); // Only run once on mount when share is configured
+
+  // Handle sharing current comparison
+  const handleShare = useCallback(async () => {
+    if (!currentComparison) {
+      throw new Error('No comparison selected');
+    }
+
+    let imageAUrl, imageBUrl;
+
+    if (currentComparison.isLocal) {
+      imageAUrl = currentComparison.images.A.url;
+      imageBUrl = currentComparison.images.B.url;
+    } else {
+      // For server-based comparisons, use the URLs from folderImages
+      const folderImgs = folderImages[currentComparison.folder];
+      if (folderImgs && folderImgs.length >= 2) {
+        const imgA = folderImgs.find(i => i.name.toLowerCase().startsWith('a'));
+        const imgB = folderImgs.find(i => i.name.toLowerCase().startsWith('b'));
+        if (imgA?.url && imgB?.url) {
+          imageAUrl = imgA.url;
+          imageBUrl = imgB.url;
+        } else {
+          throw new Error('Could not find image URLs for this comparison');
+        }
+      } else {
+        throw new Error('No images found for this comparison');
+      }
+    }
+
+    const localComp = localComparisons.find(c => c.id === currentFolder);
+    const name = localComp?.name || currentFolder || 'Comparison';
+
+    // Get annotations if available
+    const annotations = annotationsRef.current?.strokes || null;
+
+    return shareComparison(imageAUrl, imageBUrl, {
+      name,
+      annotations,
+      viewMode,
+    });
+  }, [currentComparison, currentFolder, localComparisons, folderImages, viewMode, shareComparison]);
+
   // Keyboard shortcuts: A-Z to select comparisons, < > to navigate
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -206,6 +300,12 @@ export function App() {
         onColorPickerToggle={handleColorPickerToggle}
         sliderVisible={sliderVisible}
         onSliderVisibleToggle={handleSliderVisibleToggle}
+        annotationsEnabled={annotationsEnabled}
+        onAnnotationsToggle={handleAnnotationsToggle}
+        onShare={handleShare}
+        shareEnabled={shareConfigured && !!currentFolder}
+        sharing={sharing}
+        uploadProgress={uploadProgress}
       />
       <SidebarInset className="h-screen relative">
         {viewMode === 'jeri' && (
@@ -229,6 +329,7 @@ export function App() {
             sliderVisible={sliderVisible}
             sharedZoomPan={sharedZoomPan}
             annotationsEnabled={annotationsEnabled}
+            annotationsRef={annotationsRef}
           />
         </div>
         <div className={viewMode === 'predator' ? 'h-full' : 'hidden'}>

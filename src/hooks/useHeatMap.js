@@ -10,6 +10,7 @@ export function useHeatMap(imageA, imageB, sensitivity = 128, mode = 'rgb') {
   const [error, setError] = useState(null);
   const [dimensions, setDimensions] = useState(null);
   const [stats, setStats] = useState(null);
+  const [generationTime, setGenerationTime] = useState(null);
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -42,6 +43,7 @@ export function useHeatMap(imageA, imageB, sensitivity = 128, mode = 'rgb') {
     };
 
     async function computeHeatMap() {
+      const startTime = performance.now();
       try {
         const [imgA, imgB] = await Promise.all([
           loadImage(imageA),
@@ -87,6 +89,7 @@ export function useHeatMap(imageA, imageB, sensitivity = 128, mode = 'rgb') {
         let totalDiff = 0;
         let maxDiff = 0;
         let diffPixelCount = 0;
+        let aboveThresholdCount = 0;
         const totalPixels = width * height;
 
         // Select diff function based on mode
@@ -103,6 +106,7 @@ export function useHeatMap(imageA, imageB, sensitivity = 128, mode = 'rgb') {
           totalDiff += avgDiff;
           maxDiff = Math.max(maxDiff, avgDiff);
           if (avgDiff > 0) diffPixelCount++;
+          if (avgDiff >= sensitivity) aboveThresholdCount++;
 
           // Map to blue→green→yellow→red gradient
           const color = differenceToColor(normalized);
@@ -119,6 +123,7 @@ export function useHeatMap(imageA, imageB, sensitivity = 128, mode = 'rgb') {
 
         // Convert to data URL
         const dataUrl = outputCanvas.toDataURL('image/png');
+        const endTime = performance.now();
         setHeatMapUrl(dataUrl);
         setDimensions({ width, height });
         setStats({
@@ -127,7 +132,10 @@ export function useHeatMap(imageA, imageB, sensitivity = 128, mode = 'rgb') {
           diffPercentage: ((diffPixelCount / totalPixels) * 100).toFixed(1),
           avgDiff: (totalDiff / totalPixels).toFixed(2),
           maxDiff: maxDiff.toFixed(0),
+          aboveThreshold: aboveThresholdCount,
+          aboveThresholdPercentage: ((aboveThresholdCount / totalPixels) * 100).toFixed(3),
         });
+        setGenerationTime(Math.round(endTime - startTime));
         canvasRef.current = outputCanvas;
       } catch (err) {
         if (!cancelled) {
@@ -153,6 +161,7 @@ export function useHeatMap(imageA, imageB, sensitivity = 128, mode = 'rgb') {
     error,
     dimensions,
     stats,
+    generationTime,
   };
 }
 
