@@ -138,18 +138,6 @@ export function AppSidebar({
               </div>
             </CollapsibleContent>
           </Collapsible>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onViewModeChange('jeri')}
-            className={cn(
-              "justify-start gap-2 h-8 px-2 w-full cursor-pointer group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
-              viewMode === 'jeri' && "bg-accent"
-            )}
-          >
-            <LayersIcon className="h-4 w-4 shrink-0" />
-            <span className="group-data-[collapsible=icon]:hidden">JERI</span>
-          </Button>
         </div>
       </SidebarHeader>
       <SidebarContent className="flex-1">

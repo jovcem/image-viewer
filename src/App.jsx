@@ -4,7 +4,6 @@ import { useTheme } from '@/hooks/useTheme';
 import { useImageCache } from '@/hooks/useImageCache';
 import { useShare } from '@/hooks/useShare';
 import { AppSidebar } from '@/components/AppSidebar';
-import { ViewerContainer } from '@/components/ViewerContainer';
 import { CompareSliderViewer } from '@/components/CompareSliderViewer';
 import { PredatorView } from '@/components/PredatorView';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
@@ -380,16 +379,6 @@ export function App() {
         uploadProgress={uploadProgress}
       />
       <SidebarInset className="h-screen relative">
-        {viewMode === 'jeri' && (
-          <div className="h-full">
-            <ViewerContainer
-              currentFolder={currentFolder}
-              currentComparison={currentComparison}
-              theme={theme}
-              showToolbar={showToolbar}
-            />
-          </div>
-        )}
         <div className={viewMode === 'slider' ? 'h-full' : 'hidden'}>
           <CompareSliderViewer
             currentFolder={currentFolder}

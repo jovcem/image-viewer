@@ -127,41 +127,6 @@
   }
 }
 
-/* JERI viewer theme overrides */
-.jeri-dark {
-  background-color: #262626 !important;
-}
-.jeri-dark > div,
-.jeri-dark [class*="toolbar"],
-.jeri-dark [class*="Toolbar"],
-.jeri-dark [class*="menu"],
-.jeri-dark [class*="Menu"],
-.jeri-dark [class*="panel"],
-.jeri-dark [class*="Panel"],
-.jeri-dark [class*="control"],
-.jeri-dark [class*="Control"],
-.jeri-dark button {
-  background-color: #333333 !important;
-  color: #fff !important;
-}
-
-.jeri-light {
-  background-color: #f5f5f5 !important;
-}
-.jeri-light > div,
-.jeri-light [class*="toolbar"],
-.jeri-light [class*="Toolbar"],
-.jeri-light [class*="menu"],
-.jeri-light [class*="Menu"],
-.jeri-light [class*="panel"],
-.jeri-light [class*="Panel"],
-.jeri-light [class*="control"],
-.jeri-light [class*="Control"],
-.jeri-light button {
-  background-color: #e5e5e5 !important;
-  color: #1a1a1a !important;
-}
-
 /* Checkerboard pattern (like Photoshop transparency) */
 .bg-checked {
   background-color: #ffffff;
