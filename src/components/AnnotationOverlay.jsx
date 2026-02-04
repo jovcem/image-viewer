@@ -19,17 +19,17 @@ function TextInput({ x, y, effectiveScale, pan, onConfirm, onCancel, color, font
     }
   };
 
-  // Calculate screen position from image space coordinates (relative to center)
-  const screenX = x * effectiveScale + pan.x + window.innerWidth / 2;
-  const screenY = y * effectiveScale + pan.y + window.innerHeight / 2;
+  // Position from container center (50%) plus offset, matching SVG coordinate system
+  const offsetX = x * effectiveScale + pan.x;
+  const offsetY = y * effectiveScale + pan.y;
 
   return (
     <div
       className="absolute z-50"
       style={{
-        left: screenX,
-        top: screenY,
-        transform: 'translate(-4px, -50%)',
+        left: '50%',
+        top: '50%',
+        transform: `translate(calc(${offsetX}px - 4px), calc(${offsetY}px - 50%))`,
       }}
       onPointerDown={(e) => e.stopPropagation()}
     >
