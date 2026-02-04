@@ -61,8 +61,8 @@ export function ViewerContainer({ currentFolder, currentComparison, theme, showT
       if (currentComparison.isLocal) {
         // Use object URLs from local comparison
         images = {
-          A: currentComparison.images.A.url,
-          B: currentComparison.images.B.url,
+          A: currentComparison.images.A?.url || null,
+          B: currentComparison.images.B?.url || null,
         };
       } else {
         // Fetch from server folder

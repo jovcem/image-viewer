@@ -48,8 +48,8 @@ export async function getImageUrls(folderId, localComp = null) {
   let urls;
   if (localComp) {
     urls = {
-      A: localComp.images.A.url,
-      B: localComp.images.B.url,
+      A: localComp.images.A?.url || null,
+      B: localComp.images.B?.url || null,
     };
   } else {
     urls = await findImageUrls(folderId);

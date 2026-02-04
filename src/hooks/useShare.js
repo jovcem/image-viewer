@@ -91,24 +91,24 @@ export function useShare() {
     setError(null);
     setUploadProgress(0);
 
+    const isSingle = metadata.isSingle || !imageBUrl;
+
     try {
       // Generate unique ID for this share
       const shareId = crypto.randomUUID();
 
       // Convert URLs to blobs
-      const [blobA, blobB] = await Promise.all([
-        urlToBlob(imageAUrl),
-        urlToBlob(imageBUrl),
-      ]);
+      const blobA = await urlToBlob(imageAUrl);
+      const blobB = isSingle ? null : await urlToBlob(imageBUrl);
 
       const extA = getFileExtension(blobA);
-      const extB = getFileExtension(blobB);
+      const extB = blobB ? getFileExtension(blobB) : null;
 
       // Upload images to Supabase Storage with progress tracking
       const pathA = `${shareId}/A.${extA}`;
-      const pathB = `${shareId}/B.${extB}`;
+      const pathB = blobB ? `${shareId}/B.${extB}` : null;
 
-      const totalSize = blobA.size + blobB.size;
+      const totalSize = blobA.size + (blobB?.size || 0);
       let uploadedA = 0;
       let uploadedB = 0;
 
@@ -117,27 +117,31 @@ export function useShare() {
         setUploadProgress(progress);
       };
 
-      await Promise.all([
-        uploadWithProgress('comparisons', pathA, blobA, (loaded) => {
-          uploadedA = loaded;
-          updateProgress();
-        }),
-        uploadWithProgress('comparisons', pathB, blobB, (loaded) => {
+      // Upload image A
+      await uploadWithProgress('comparisons', pathA, blobA, (loaded) => {
+        uploadedA = loaded;
+        updateProgress();
+      });
+
+      // Upload image B only if not single mode
+      if (blobB && pathB) {
+        await uploadWithProgress('comparisons', pathB, blobB, (loaded) => {
           uploadedB = loaded;
           updateProgress();
-        }),
-      ]);
+        });
+      }
 
       // Insert metadata into database
       const { error: dbError } = await supabase
         .from('shared_comparisons')
         .insert({
           id: shareId,
-          name: metadata.name || 'Shared Comparison',
+          name: metadata.name || (isSingle ? 'Shared Image' : 'Shared Comparison'),
           image_a_path: pathA,
-          image_b_path: pathB,
+          image_b_path: pathB, // null for single images
           annotations: metadata.annotations || null,
           view_mode: metadata.viewMode || 'slider',
+          is_single: isSingle,
         });
 
       if (dbError) throw new Error(`Failed to save comparison: ${dbError.message}`);
@@ -173,20 +177,28 @@ export function useShare() {
       if (dbError) throw new Error(`Comparison not found: ${dbError.message}`);
       if (!data) throw new Error('Comparison not found');
 
+      // Check if this is a single image (either explicit flag or missing image_b_path)
+      const isSingle = data.is_single || !data.image_b_path;
+
       // Get public URLs for the images
       const { data: urlDataA } = supabase.storage
         .from('comparisons')
         .getPublicUrl(data.image_a_path);
 
-      const { data: urlDataB } = supabase.storage
-        .from('comparisons')
-        .getPublicUrl(data.image_b_path);
+      let imageB = null;
+      if (!isSingle && data.image_b_path) {
+        const { data: urlDataB } = supabase.storage
+          .from('comparisons')
+          .getPublicUrl(data.image_b_path);
+        imageB = urlDataB.publicUrl;
+      }
 
       return {
         id: data.id,
         name: data.name,
         imageA: urlDataA.publicUrl,
-        imageB: urlDataB.publicUrl,
+        imageB,
+        isSingle,
         annotations: data.annotations,
         viewMode: data.view_mode,
         createdAt: data.created_at,

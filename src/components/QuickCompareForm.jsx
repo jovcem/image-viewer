@@ -50,12 +50,16 @@ export function QuickCompareForm({ onCompare }) {
     fetchImageFromUrl,
   });
 
+  // Track if we have 1 or 2 files
+  const hasSingleFile = fileA && !fileB;
+  const hasBothFiles = fileA && fileB;
+
   // Start countdown when both files are added
   useEffect(() => {
-    if (fileA && fileB && !readyToCompare) {
+    if (hasBothFiles && !readyToCompare) {
       setReadyToCompare(true);
       setCountdown(2);
-    } else if ((!fileA || !fileB) && readyToCompare) {
+    } else if (!hasBothFiles && readyToCompare) {
       setReadyToCompare(false);
       setCountdown(null);
       if (timerRef.current) {
@@ -63,7 +67,7 @@ export function QuickCompareForm({ onCompare }) {
         timerRef.current = null;
       }
     }
-  }, [fileA, fileB, readyToCompare]);
+  }, [hasBothFiles, readyToCompare]);
 
   // Countdown timer
   useEffect(() => {
@@ -118,6 +122,22 @@ export function QuickCompareForm({ onCompare }) {
     setCountdown(null);
   }, [fileA, fileB, onCompare]);
 
+  const startSingleView = useCallback(() => {
+    if (!fileA) return;
+
+    const comparison = {
+      id: `single_${Date.now()}`,
+      name: generateName(),
+      isLocal: true,
+      isSingle: true,
+      images: {
+        A: { name: fileA.name, url: URL.createObjectURL(fileA) },
+        B: null,
+      },
+    };
+    onCompare?.(comparison);
+  }, [fileA, onCompare]);
+
   return (
     <div className="flex items-center justify-center h-full">
       <div className="flex flex-col items-center gap-8 p-8">
@@ -171,10 +191,19 @@ export function QuickCompareForm({ onCompare }) {
                 </Button>
               </div>
             )
+          ) : hasSingleFile ? (
+            <div className="flex flex-col items-center gap-3">
+              <p className="text-sm text-muted-foreground">Single image ready</p>
+              <Button onClick={startSingleView} className="gap-2">
+                <PlayIcon className="h-4 w-4" />
+                View Single
+              </Button>
+              <p className="text-xs text-muted-foreground">Or add a second image to compare</p>
+            </div>
           ) : (
             <>
               <h2 className="text-lg font-medium mb-1">Quick Compare</h2>
-              <p className="text-sm text-muted-foreground">Add two images to compare them side by side</p>
+              <p className="text-sm text-muted-foreground">Add one or two images to view or compare</p>
             </>
           )}
         </div>

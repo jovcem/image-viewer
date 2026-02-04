@@ -17,7 +17,9 @@ export function useZoomPan(imageDimsA, imageDimsB, containerRef, sharedState = n
 
   const [isPanning, setIsPanning] = useState(false);
   const [isSpaceHeld, setIsSpaceHeld] = useState(false);
+  const [isZooming, setIsZooming] = useState(false);
   const lastPanPoint = useRef({ x: 0, y: 0 });
+  const zoomTimeoutRef = useRef(null);
 
   // Track spacebar for pan mode
   useEffect(() => {
@@ -91,6 +93,16 @@ export function useZoomPan(imageDimsA, imageDimsB, containerRef, sharedState = n
     const wheelHandler = (e) => {
       e.preventDefault();
       setZoomModeRef.current(null); // Clear mode when manually zooming
+
+      // Set zooming state to disable transitions during wheel zoom
+      setIsZooming(true);
+      if (zoomTimeoutRef.current) {
+        clearTimeout(zoomTimeoutRef.current);
+      }
+      zoomTimeoutRef.current = setTimeout(() => {
+        setIsZooming(false);
+      }, 150);
+
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
       setZoomRef.current(z => Math.min(Math.max(z * delta, 0.1), 20));
     };
@@ -203,6 +215,7 @@ export function useZoomPan(imageDimsA, imageDimsB, containerRef, sharedState = n
     pan,
     isPanning,
     isSpaceHeld,
+    isZooming,
     canPan,
     zoomMode,
     transform,

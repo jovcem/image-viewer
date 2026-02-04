@@ -203,7 +203,7 @@ function PixelGrid({ grid, label }) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[10px] font-medium text-zinc-400 w-3">{label}</span>
+      {label && <span className="text-[10px] font-medium text-zinc-400 w-3">{label}</span>}
       <div
         className="grid gap-0.5 bg-zinc-800 p-0.5 rounded"
         style={{ gridTemplateColumns: `repeat(3, ${pixelSize}px)` }}
@@ -232,7 +232,7 @@ function ColorSwatch({ color, label }) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[10px] font-medium text-zinc-400 w-3">{label}</span>
+      {label && <span className="text-[10px] font-medium text-zinc-400 w-3">{label}</span>}
       <div
         className="w-4 h-4 rounded border border-white/20"
         style={{ backgroundColor: bgColor }}
@@ -249,6 +249,8 @@ function ColorSwatch({ color, label }) {
 export function ColorPickerTooltip({ colorA, colorB, gridA, gridB, position, imageCoords }) {
   if (!colorA && !colorB) return null;
 
+  const hasB = colorB || gridB;
+
   return (
     <div
       className="fixed z-50 pointer-events-none"
@@ -263,13 +265,13 @@ export function ColorPickerTooltip({ colorA, colorB, gridA, gridB, position, ima
         </div>
         {/* Magnifier grids */}
         <div className="flex gap-3 mb-2">
-          <PixelGrid grid={gridA} label="A" />
-          <PixelGrid grid={gridB} label="B" />
+          <PixelGrid grid={gridA} label={hasB ? "A" : null} />
+          {hasB && <PixelGrid grid={gridB} label="B" />}
         </div>
         {/* Color values */}
         <div className="flex flex-col gap-1 pt-2 border-t border-zinc-700/50">
-          <ColorSwatch color={colorA} label="A" />
-          <ColorSwatch color={colorB} label="B" />
+          <ColorSwatch color={colorA} label={hasB ? "A" : null} />
+          {hasB && <ColorSwatch color={colorB} label="B" />}
         </div>
         {colorA && colorB && (
           <div className="mt-1 pt-1 border-t border-zinc-700/50">

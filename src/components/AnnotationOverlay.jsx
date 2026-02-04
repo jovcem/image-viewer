@@ -1,9 +1,27 @@
 import { cn } from '@/lib/utils';
 
-export function AnnotationOverlay({ annotations, zoom, pan, containerRef }) {
-  const { strokePaths, currentPath, enabled } = annotations;
+export function AnnotationOverlay({ annotations, zoom, pan, containerRef, showingImage = null, isSliderMode = false, isSingle = false }) {
+  const { strokePaths, strokePathsA, strokePathsB, currentPath, enabled, annotatingImage } = annotations;
 
-  if (!enabled && strokePaths.length === 0 && !currentPath) {
+  // Determine which stroke paths to show:
+  // - Single image mode: only A
+  // - Slider mode: show both A and B (both images visible)
+  // - Single view mode: show strokes for the image being shown
+  const getPathsToRender = () => {
+    if (isSingle) {
+      return strokePathsA;
+    }
+    if (isSliderMode) {
+      // Both images visible, show all strokes
+      return [...strokePathsA, ...strokePathsB];
+    }
+    // Single view mode - show strokes for the viewed image
+    return showingImage === 'B' ? strokePathsB : strokePathsA;
+  };
+
+  const pathsToRender = getPathsToRender();
+
+  if (!enabled && pathsToRender.length === 0 && !currentPath) {
     return null;
   }
 
@@ -21,7 +39,7 @@ export function AnnotationOverlay({ annotations, zoom, pan, containerRef }) {
           transformOrigin: 'center center',
         }}
       >
-        {strokePaths.map((stroke, i) => (
+        {pathsToRender.map((stroke, i) => (
           <path
             key={i}
             d={stroke.path}
@@ -43,8 +61,8 @@ export function AnnotationOverlay({ annotations, zoom, pan, containerRef }) {
   );
 }
 
-export function AnnotationControls({ annotations }) {
-  const { enabled, color, colors, colorIndex, setColorIndex, clear, undo, strokePaths, brushSize, setBrushSize } = annotations;
+export function AnnotationControls({ annotations, isSingle = false }) {
+  const { enabled, color, colors, colorIndex, setColorIndex, clear, undo, currentImageStrokes, brushSize, setBrushSize, annotatingImage } = annotations;
 
   if (!enabled) return null;
 
@@ -57,6 +75,13 @@ export function AnnotationControls({ annotations }) {
       onMouseDown={stopProp}
       onPointerDown={stopProp}
     >
+      {/* Show which image is being annotated (only for comparison mode) */}
+      {!isSingle && (
+        <div className="flex items-center gap-2 pb-1 border-b border-zinc-700/50">
+          <span className="text-[10px] text-zinc-500">Annotating:</span>
+          <span className="text-[10px] font-medium text-zinc-300">{annotatingImage}</span>
+        </div>
+      )}
       <div className="flex items-center gap-2">
         <div className="flex gap-1">
           {colors.map((c, i) => (
@@ -74,14 +99,14 @@ export function AnnotationControls({ annotations }) {
         <div className="w-px h-5 bg-zinc-700" />
         <button
           onClick={undo}
-          disabled={strokePaths.length === 0}
+          disabled={currentImageStrokes.length === 0}
           className="px-2 py-1 text-[10px] text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Undo
         </button>
         <button
           onClick={clear}
-          disabled={strokePaths.length === 0}
+          disabled={currentImageStrokes.length === 0}
           className="px-2 py-1 text-[10px] text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Clear

@@ -28,7 +28,7 @@ const bgClassMap = {
   bordered: 'bg-white',
 };
 
-export function CompareSliderViewer({ currentFolder, currentComparison, bgOption = 'default', showToolbar = true, onNewComparison, colorPickerEnabled = false, sliderVisible = true, sharedZoomPan = null, annotationsEnabled = false, annotationsRef = null }) {
+export function CompareSliderViewer({ currentFolder, currentComparison, bgOption = 'default', showToolbar = true, onNewComparison, colorPickerEnabled = false, sliderVisible = true, onSliderVisibleChange, sharedZoomPan = null, annotationsEnabled = false, annotationsRef = null }) {
   const [images, setImages] = useState({ A: null, B: null });
   const [imageDims, setImageDims] = useState({ A: null, B: null });
   const [loading, setLoading] = useState(false);
@@ -36,11 +36,39 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
   const [ready, setReady] = useState(false); // For fade-in transition
   const containerRef = useRef(null);
   const [sliderPosition, setSliderPosition] = useState(50);
-  const [activeImage, setActiveImage] = useState(null); // Local state for instant response
+  const [activeImage, setActiveImage] = useState(null); // 'A' | 'B' | null (null = slider mode)
+  const [peekingOther, setPeekingOther] = useState(false); // Tab held to peek other image
+
+  // Ref to track activeImage for keyboard handlers (avoids stale closure)
+  const activeImageRef = useRef(activeImage);
+  activeImageRef.current = activeImage;
+
+  // Reset activeImage when returning to slider mode
+  useEffect(() => {
+    if (sliderVisible) {
+      setActiveImage(null);
+    }
+  }, [sliderVisible]);
+
+  // Detect if this is a single image mode (from comparison data or missing image B)
+  const isSingle = currentComparison?.isSingle || false;
+
+  // When annotations are enabled, ensure we're viewing a specific image (default to A)
+  useEffect(() => {
+    if (annotationsEnabled && !isSingle && !activeImage) {
+      setActiveImage('A');
+    }
+  }, [annotationsEnabled, isSingle, activeImage]);
+
+  // Determine which image is being viewed/annotated
+  // When peeking, we view the other image but still annotate the selected one
+  const viewingImage = peekingOther ? (activeImage === 'A' ? 'B' : 'A') : (activeImage || 'A');
 
   const zoomPan = useZoomPan(imageDims.A, imageDims.B, containerRef, sharedZoomPan);
   const colorPicker = useColorPicker(images.A, images.B, colorPickerEnabled, zoomPan.zoom, zoomPan.pan);
-  const annotations = useAnnotations(annotationsEnabled, zoomPan.zoom, zoomPan.pan);
+  // Pass activeImage to annotations so it knows which image to annotate
+  // Note: annotate the activeImage (not viewingImage) - peeking doesn't change what we're annotating
+  const annotations = useAnnotations(annotationsEnabled, zoomPan.zoom, zoomPan.pan, activeImage || 'A', isSingle, sliderVisible);
 
   // Expose annotations to parent via ref for sharing
   useEffect(() => {
@@ -48,6 +76,22 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
       annotationsRef.current = annotations;
     }
   }, [annotationsRef, annotations]);
+
+  // Load/clear annotations when comparison changes
+  const prevFolderRef = useRef(null);
+  useEffect(() => {
+    // Only act when folder actually changes
+    if (currentFolder === prevFolderRef.current) return;
+    prevFolderRef.current = currentFolder;
+
+    if (currentComparison?.annotations) {
+      // Load annotations for this comparison
+      annotations.setStrokes(currentComparison.annotations);
+    } else {
+      // Clear annotations when switching to comparison without annotations
+      annotations.clearAll();
+    }
+  }, [currentFolder, currentComparison?.annotations, annotations.setStrokes, annotations.clearAll]);
 
   // Load image dimensions when images change
   useEffect(() => {
@@ -80,22 +124,43 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
     });
   }, [images.A, images.B]);
 
-  // Keyboard shortcuts: 1 = show A, 2 = show B
+  // Keyboard shortcuts: 1 = permanently show A, 2 = permanently show B, Tab = peek other, / = slider
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
+      // Single image mode: disable 1/2/Tab keys
+      if (isSingle) return;
+
       if (e.key === '1') {
+        e.preventDefault();
         setActiveImage('A');
+        // Turn off slider when selecting an image
+        if (sliderVisible && onSliderVisibleChange) {
+          onSliderVisibleChange(false);
+        }
       } else if (e.key === '2') {
+        e.preventDefault();
         setActiveImage('B');
+        // Turn off slider when selecting an image
+        if (sliderVisible && onSliderVisibleChange) {
+          onSliderVisibleChange(false);
+        }
+      } else if (e.key === 'Tab') {
+        // Always prevent Tab's default focus behavior in comparison mode
+        e.preventDefault();
+        // Only activate peek if an image is selected and not repeating
+        if (activeImageRef.current && !e.repeat) {
+          setPeekingOther(true);
+        }
       }
     };
 
     const handleKeyUp = (e) => {
-      if (e.key === '1' || e.key === '2') {
-        setActiveImage(null);
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        setPeekingOther(false);
       }
     };
 
@@ -105,10 +170,21 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []);
+  }, [isSingle, sliderVisible, onSliderVisibleChange]);
 
-  // Determine which image to show when slider is hidden (single image mode)
-  const showingImage = !sliderVisible ? (activeImage === 'B' ? 'B' : 'A') : null;
+  // Determine which image to show when slider is hidden (single image or comparison mode)
+  // When peeking (Tab held), show the opposite image
+  const getShowingImage = () => {
+    if (sliderVisible) return null;
+    if (isSingle) return 'A'; // Single image always shows A
+
+    const baseImage = activeImage === 'B' ? 'B' : 'A';
+    if (peekingOther) {
+      return baseImage === 'A' ? 'B' : 'A';
+    }
+    return baseImage;
+  };
+  const showingImage = getShowingImage();
 
   // Memoize image style to prevent unnecessary re-renders
   const imageStyle = useMemo(() => ({
@@ -137,15 +213,23 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
 
       if (cancelled) return;
 
-      // Check if images are already cached
-      const isCached = found.A && found.B && isImageCached(found.A) && isImageCached(found.B);
+      // Check if images are already cached (handle single image mode)
+      const isSingleMode = currentComparison.isSingle;
+      const isCached = isSingleMode
+        ? found.A && isImageCached(found.A)
+        : found.A && found.B && isImageCached(found.A) && isImageCached(found.B);
 
       if (!isCached) {
         setLoading(true);
       }
       setError('');
 
-      if (!found.A && !found.B) {
+      // For single image mode, only check for A
+      if (isSingleMode && !found.A) {
+        setError(`No image found`);
+        setImages({ A: null, B: null });
+        setLoading(false);
+      } else if (!isSingleMode && !found.A && !found.B) {
         setError(`No A or B images found in "${currentFolder}"`);
         setImages({ A: null, B: null });
         setLoading(false);
@@ -158,21 +242,24 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
         } else {
           // Wait for images to actually load in DOM
           const imgA = new Image();
-          const imgB = new Image();
+          const imgB = isSingleMode ? null : new Image();
           let loadedCount = 0;
+          const expectedCount = isSingleMode ? 1 : 2;
           const onLoad = () => {
             loadedCount++;
-            if (loadedCount === 2 && !cancelled) {
+            if (loadedCount === expectedCount && !cancelled) {
               setReady(true);
               setLoading(false);
             }
           };
           imgA.onload = onLoad;
           imgA.onerror = onLoad;
-          imgB.onload = onLoad;
-          imgB.onerror = onLoad;
+          if (imgB) {
+            imgB.onload = onLoad;
+            imgB.onerror = onLoad;
+            imgB.src = found.B;
+          }
           imgA.src = found.A;
-          imgB.src = found.B;
         }
       }
     }
@@ -213,12 +300,24 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
     );
   }
 
-  if (!images.A || !images.B) {
+  // For non-single mode, require both images
+  if (!isSingle && (!images.A || !images.B)) {
     return (
       <div className="h-full overflow-hidden relative">
         <EmptyState>
           <p className="text-yellow-400">Need both A and B images for comparison</p>
           <p className="my-2">Found: {images.A ? 'A' : ''} {images.B ? 'B' : ''}</p>
+        </EmptyState>
+      </div>
+    );
+  }
+
+  // For single image mode, just need image A
+  if (isSingle && !images.A) {
+    return (
+      <div className="h-full overflow-hidden relative">
+        <EmptyState>
+          <p className="text-yellow-400">No image found</p>
         </EmptyState>
       </div>
     );
@@ -266,47 +365,49 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
             annotations.handlePointerUp(e);
           }}
         >
-          {/* Slider mode */}
-          <div
-            className="absolute inset-0"
-            style={{
-              visibility: sliderVisible ? 'visible' : 'hidden',
-              zIndex: sliderVisible ? 1 : 0,
-            }}
-          >
-            <ReactCompareSlider
-              itemOne={
-                <ReactCompareSliderImage
-                  src={images.A}
-                  alt="Image A"
-                  style={imageStyle}
-                />
-              }
-              itemTwo={
-                <ReactCompareSliderImage
-                  src={images.B}
-                  alt="Image B"
-                  style={imageStyle}
-                />
-              }
-              handle={!activeImage ? <MinimalHandle /> : <div />}
-              position={activeImage === 'A' ? 100 : activeImage === 'B' ? 0 : sliderPosition}
-              onPositionChange={(pos) => {
-                if (!activeImage) setSliderPosition(pos);
-              }}
+          {/* Slider mode (not for single images) */}
+          {!isSingle && (
+            <div
+              className="absolute inset-0"
               style={{
-                height: '100%',
-                width: '100%',
-                pointerEvents: zoomPan.isSpaceHeld || activeImage ? 'none' : 'auto',
+                visibility: sliderVisible ? 'visible' : 'hidden',
+                zIndex: sliderVisible ? 1 : 0,
               }}
-            />
-          </div>
-          {/* Single image mode */}
+            >
+              <ReactCompareSlider
+                itemOne={
+                  <ReactCompareSliderImage
+                    src={images.A}
+                    alt="Image A"
+                    style={imageStyle}
+                  />
+                }
+                itemTwo={
+                  <ReactCompareSliderImage
+                    src={images.B}
+                    alt="Image B"
+                    style={imageStyle}
+                  />
+                }
+                handle={!activeImage ? <MinimalHandle /> : <div />}
+                position={activeImage === 'A' ? 100 : activeImage === 'B' ? 0 : sliderPosition}
+                onPositionChange={(pos) => {
+                  if (!activeImage) setSliderPosition(pos);
+                }}
+                style={{
+                  height: '100%',
+                  width: '100%',
+                  pointerEvents: zoomPan.isSpaceHeld || activeImage ? 'none' : 'auto',
+                }}
+              />
+            </div>
+          )}
+          {/* Single view mode (one image selected, or single image mode) */}
           <div
             className="absolute inset-0 flex items-center justify-center"
             style={{
-              visibility: !sliderVisible ? 'visible' : 'hidden',
-              zIndex: !sliderVisible ? 1 : 0,
+              visibility: (isSingle || !sliderVisible) ? 'visible' : 'hidden',
+              zIndex: (isSingle || !sliderVisible) ? 1 : 0,
             }}
           >
             <img
@@ -315,24 +416,26 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
               className="w-full h-full object-contain"
               style={{
                 ...imageStyle,
-                opacity: showingImage === 'A' ? 1 : 0,
+                opacity: showingImage === 'A' || isSingle ? 1 : 0,
                 pointerEvents: 'none',
                 position: 'absolute',
               }}
             />
-            <img
-              src={images.B}
-              alt="Image B"
-              className="w-full h-full object-contain"
-              style={{
-                ...imageStyle,
-                opacity: showingImage === 'B' ? 1 : 0,
-                pointerEvents: 'none',
-                position: 'absolute',
-              }}
-            />
+            {!isSingle && images.B && (
+              <img
+                src={images.B}
+                alt="Image B"
+                className="w-full h-full object-contain"
+                style={{
+                  ...imageStyle,
+                  opacity: showingImage === 'B' ? 1 : 0,
+                  pointerEvents: 'none',
+                  position: 'absolute',
+                }}
+              />
+            )}
           </div>
-          {showToolbar && <ImageInfoToolbar imageA={images.A} imageB={images.B} activeImage={!sliderVisible ? showingImage : null} />}
+          {showToolbar && <ImageInfoToolbar imageA={images.A} imageB={isSingle ? null : images.B} activeImage={(isSingle || !sliderVisible) ? showingImage : null} />}
           <div className="absolute top-2 right-2 z-10">
             <ZoomControls
               zoom={zoomPan.zoom}
@@ -342,25 +445,28 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
               onZoomOut={zoomPan.zoomOut}
               onReset={zoomPan.reset}
               onMatchA={zoomPan.matchA}
-              onMatchB={zoomPan.matchB}
+              onMatchB={isSingle ? null : zoomPan.matchB}
               hasImageA={!!imageDims.A}
-              hasImageB={!!imageDims.B}
+              hasImageB={!isSingle && !!imageDims.B}
             />
           </div>
           <AnnotationOverlay
             annotations={annotations}
             zoom={zoomPan.zoom}
             pan={zoomPan.pan}
+            showingImage={showingImage}
+            isSliderMode={sliderVisible && !isSingle}
+            isSingle={isSingle}
           />
-          <AnnotationControls annotations={annotations} />
+          <AnnotationControls annotations={annotations} isSingle={isSingle} />
         </div>
       </div>
       {colorPicker.enabled && (
         <ColorPickerTooltip
           colorA={colorPicker.colorA}
-          colorB={colorPicker.colorB}
+          colorB={isSingle ? null : colorPicker.colorB}
           gridA={colorPicker.gridA}
-          gridB={colorPicker.gridB}
+          gridB={isSingle ? null : colorPicker.gridB}
           position={colorPicker.position}
           imageCoords={colorPicker.imageCoords}
         />

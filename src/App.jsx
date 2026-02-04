@@ -19,6 +19,8 @@ export function App() {
   const [sharedLoadError, setSharedLoadError] = useState(null);
   const annotationsRef = useRef(null);
   const shareLoadedRef = useRef(null);
+  const prevFolderRef = useRef(null);
+  const [comparisonAnnotations, setComparisonAnnotations] = useState({}); // { [compId]: { A: [], B: [] } }
   const [bgOption, setBgOption] = useState(() => {
     return localStorage.getItem('viewer-bg-option') || 'default';
   });
@@ -57,6 +59,25 @@ export function App() {
   // Preload images for smoother navigation
   useImageCache(folders, localComparisons, currentFolder);
 
+  // Save annotations when switching comparisons
+  useEffect(() => {
+    const prevFolder = prevFolderRef.current;
+
+    // Save annotations from previous comparison
+    if (prevFolder && annotationsRef.current?.strokes) {
+      const strokes = annotationsRef.current.strokes;
+      // Only save if there are actual annotations
+      if (strokes.A?.length > 0 || strokes.B?.length > 0) {
+        setComparisonAnnotations(prev => ({
+          ...prev,
+          [prevFolder]: strokes,
+        }));
+      }
+    }
+
+    prevFolderRef.current = currentFolder;
+  }, [currentFolder]);
+
   const handleColorPickerToggle = () => {
     const newValue = !colorPickerEnabled;
     setColorPickerEnabled(newValue);
@@ -67,13 +88,30 @@ export function App() {
     setSliderVisible(prev => {
       const newValue = !prev;
       localStorage.setItem('slider-visible', String(newValue));
+      // When enabling slider, disable annotations
+      if (newValue) {
+        setAnnotationsEnabled(false);
+      }
       return newValue;
     });
   }, []);
 
-  const handleAnnotationsToggle = useCallback(() => {
-    setAnnotationsEnabled(prev => !prev);
+  const handleSliderVisibleChange = useCallback((visible) => {
+    setSliderVisible(visible);
+    localStorage.setItem('slider-visible', String(visible));
   }, []);
+
+  const handleAnnotationsToggle = useCallback(() => {
+    setAnnotationsEnabled(prev => {
+      const newValue = !prev;
+      // When enabling annotations, disable slider for better annotation experience
+      if (newValue && sliderVisible) {
+        setSliderVisible(false);
+        localStorage.setItem('slider-visible', 'false');
+      }
+      return newValue;
+    });
+  }, [sliderVisible]);
 
   const handleSidebarOpenChange = (open) => {
     setSidebarOpen(open);
@@ -112,17 +150,25 @@ export function App() {
   const getCurrentComparison = () => {
     if (!currentFolder) return null;
 
+    // Get stored annotations for this comparison (user edits take precedence)
+    const storedAnnotations = comparisonAnnotations[currentFolder] || null;
+
     const localComp = localComparisons.find(c => c.id === currentFolder);
     if (localComp) {
       return {
         isLocal: true,
+        isSingle: localComp.isSingle || false,
         images: localComp.images,
+        // Use stored annotations, fall back to shared comparison annotations
+        annotations: storedAnnotations || localComp.annotations || null,
       };
     }
 
     return {
       isLocal: false,
+      isSingle: false,
       folder: currentFolder,
+      annotations: storedAnnotations,
     };
   };
 
@@ -146,10 +192,12 @@ export function App() {
         // Create a local comparison from the shared data
         const comparison = {
           id: `shared-${shared.id}`,
-          name: shared.name || 'Shared Comparison',
+          name: shared.name || (shared.isSingle ? 'Shared Image' : 'Shared Comparison'),
+          isLocal: true,
+          isSingle: shared.isSingle,
           images: {
             A: { name: 'A', url: shared.imageA },
-            B: { name: 'B', url: shared.imageB },
+            B: shared.isSingle ? null : { name: 'B', url: shared.imageB },
           },
           isShared: true,
           annotations: shared.annotations,
@@ -163,8 +211,8 @@ export function App() {
         });
         setCurrentFolder(comparison.id);
 
-        // Set view mode if specified
-        if (shared.viewMode) {
+        // Set view mode if specified (but not for single images)
+        if (shared.viewMode && !shared.isSingle) {
           setViewMode(shared.viewMode);
         }
       })
@@ -182,20 +230,21 @@ export function App() {
       throw new Error('No comparison selected');
     }
 
+    const isSingle = currentComparison.isSingle;
     let imageAUrl, imageBUrl;
 
     if (currentComparison.isLocal) {
       imageAUrl = currentComparison.images.A.url;
-      imageBUrl = currentComparison.images.B.url;
+      imageBUrl = isSingle ? null : currentComparison.images.B?.url;
     } else {
       // For server-based comparisons, use the URLs from folderImages
       const folderImgs = folderImages[currentComparison.folder];
-      if (folderImgs && folderImgs.length >= 2) {
+      if (folderImgs && folderImgs.length >= 1) {
         const imgA = folderImgs.find(i => i.name.toLowerCase().startsWith('a'));
         const imgB = folderImgs.find(i => i.name.toLowerCase().startsWith('b'));
-        if (imgA?.url && imgB?.url) {
+        if (imgA?.url) {
           imageAUrl = imgA.url;
-          imageBUrl = imgB.url;
+          imageBUrl = isSingle ? null : imgB?.url;
         } else {
           throw new Error('Could not find image URLs for this comparison');
         }
@@ -205,15 +254,16 @@ export function App() {
     }
 
     const localComp = localComparisons.find(c => c.id === currentFolder);
-    const name = localComp?.name || currentFolder || 'Comparison';
+    const name = localComp?.name || currentFolder || (isSingle ? 'Image' : 'Comparison');
 
-    // Get annotations if available
+    // Get annotations if available (now in { A: [], B: [] } format)
     const annotations = annotationsRef.current?.strokes || null;
 
     return shareComparison(imageAUrl, imageBUrl, {
       name,
       annotations,
       viewMode,
+      isSingle,
     });
   }, [currentComparison, currentFolder, localComparisons, folderImages, viewMode, shareComparison]);
 
@@ -245,15 +295,18 @@ export function App() {
         return;
       }
 
-      // / to toggle slider visibility
+      // / to return to slider mode (enable slider visibility, disable annotations)
       if (e.key === '/') {
         e.preventDefault();
-        handleSliderVisibleToggle();
+        setSliderVisible(true);
+        localStorage.setItem('slider-visible', 'true');
+        setAnnotationsEnabled(false);
         return;
       }
 
-      // 3 to toggle predator view
+      // 3 to toggle predator view (disabled for single images)
       if (e.key === '3') {
+        if (currentComparison?.isSingle) return; // Disable for single images
         setViewMode(prev => prev === 'predator' ? 'slider' : 'predator');
         return;
       }
@@ -327,6 +380,7 @@ export function App() {
             onNewComparison={handleNewComparison}
             colorPickerEnabled={colorPickerEnabled}
             sliderVisible={sliderVisible}
+            onSliderVisibleChange={handleSliderVisibleChange}
             sharedZoomPan={sharedZoomPan}
             annotationsEnabled={annotationsEnabled}
             annotationsRef={annotationsRef}

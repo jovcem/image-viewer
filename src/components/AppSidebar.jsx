@@ -291,12 +291,14 @@ export function AppSidebar({
                                 <span>{comp.images.A.name}</span>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
-                            <SidebarMenuSubItem>
-                              <SidebarMenuSubButton className="cursor-default">
-                                <ImageIcon className="h-3 w-3 text-muted-foreground" />
-                                <span>{comp.images.B.name}</span>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
+                            {comp.images.B && (
+                              <SidebarMenuSubItem>
+                                <SidebarMenuSubButton className="cursor-default">
+                                  <ImageIcon className="h-3 w-3 text-muted-foreground" />
+                                  <span>{comp.images.B.name}</span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            )}
                           </SidebarMenuSub>
                         </CollapsibleContent>
                       </SidebarMenuItem>
