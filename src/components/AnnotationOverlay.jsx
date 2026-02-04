@@ -1,25 +1,84 @@
 import { cn } from '@/lib/utils';
 
-export function AnnotationOverlay({ annotations, zoom, pan, containerRef, showingImage = null, isSliderMode = false, isSingle = false }) {
+export function AnnotationOverlay({ annotations, zoom, pan, containerRef, showingImage = null, isSliderMode = false, isSingle = false, sliderPosition = 50 }) {
   const { strokePaths, strokePathsA, strokePathsB, currentPath, enabled, annotatingImage } = annotations;
 
   // Determine which stroke paths to show:
   // - Single image mode: only A
-  // - Slider mode: show both A and B (both images visible)
+  // - Slider mode: show both A and B with clip paths
   // - Single view mode: show strokes for the image being shown
   const getPathsToRender = () => {
     if (isSingle) {
       return strokePathsA;
     }
     if (isSliderMode) {
-      // Both images visible, show all strokes
-      return [...strokePathsA, ...strokePathsB];
+      // Will render separately with clip paths
+      return null;
     }
     // Single view mode - show strokes for the viewed image
     return showingImage === 'B' ? strokePathsB : strokePathsA;
   };
 
   const pathsToRender = getPathsToRender();
+
+  // In slider mode, render A and B separately with clip paths
+  if (isSliderMode) {
+    if (!enabled && strokePathsA.length === 0 && strokePathsB.length === 0 && !currentPath) {
+      return null;
+    }
+
+    return (
+      <>
+        {/* A strokes - clipped to left of slider */}
+        <div
+          className="absolute inset-0 pointer-events-none z-[26]"
+          style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
+        >
+          <svg style={{ width: '100%', height: '100%' }}>
+            <g style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              transformOrigin: 'center center',
+            }}>
+              {strokePathsA.map((stroke, i) => (
+                <path key={`a-${i}`} d={stroke.path} fill={stroke.color}
+                  strokeLinejoin="round" strokeLinecap="round" />
+              ))}
+            </g>
+          </svg>
+        </div>
+        {/* B strokes - clipped to right of slider */}
+        <div
+          className="absolute inset-0 pointer-events-none z-[26]"
+          style={{ clipPath: `inset(0 0 0 ${sliderPosition}%)` }}
+        >
+          <svg style={{ width: '100%', height: '100%' }}>
+            <g style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              transformOrigin: 'center center',
+            }}>
+              {strokePathsB.map((stroke, i) => (
+                <path key={`b-${i}`} d={stroke.path} fill={stroke.color}
+                  strokeLinejoin="round" strokeLinecap="round" />
+              ))}
+            </g>
+          </svg>
+        </div>
+        {/* Current path being drawn - no clipping */}
+        {currentPath && (
+          <svg className="absolute inset-0 pointer-events-none z-[26]"
+            style={{ width: '100%', height: '100%' }}>
+            <g style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              transformOrigin: 'center center',
+            }}>
+              <path d={currentPath.path} fill={currentPath.color}
+                strokeLinejoin="round" strokeLinecap="round" />
+            </g>
+          </svg>
+        )}
+      </>
+    );
+  }
 
   if (!enabled && pathsToRender.length === 0 && !currentPath) {
     return null;
@@ -71,7 +130,7 @@ export function AnnotationControls({ annotations, isSingle = false }) {
 
   return (
     <div
-      className="absolute bottom-16 right-4 z-30 bg-zinc-900/90 backdrop-blur-sm rounded-lg p-2 border border-zinc-700/50 flex flex-col gap-2"
+      className="absolute bottom-16 right-4 z-40 bg-zinc-900/90 backdrop-blur-sm rounded-lg p-2 border border-zinc-700/50 flex flex-col gap-2"
       onMouseDown={stopProp}
       onPointerDown={stopProp}
     >

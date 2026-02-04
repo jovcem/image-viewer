@@ -371,7 +371,7 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
               className="absolute inset-0"
               style={{
                 visibility: sliderVisible ? 'visible' : 'hidden',
-                zIndex: sliderVisible ? 1 : 0,
+                zIndex: sliderVisible ? 10 : 0,
               }}
             >
               <ReactCompareSlider
@@ -435,8 +435,8 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
               />
             )}
           </div>
-          {showToolbar && <ImageInfoToolbar imageA={images.A} imageB={isSingle ? null : images.B} activeImage={(isSingle || !sliderVisible) ? showingImage : null} />}
-          <div className="absolute top-2 right-2 z-10">
+          {showToolbar && <div className="z-40"><ImageInfoToolbar imageA={images.A} imageB={isSingle ? null : images.B} activeImage={(isSingle || !sliderVisible) ? showingImage : null} /></div>}
+          <div className="absolute top-2 right-2 z-40">
             <ZoomControls
               zoom={zoomPan.zoom}
               zoomMode={zoomPan.zoomMode}
@@ -450,6 +450,18 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
               hasImageB={!isSingle && !!imageDims.B}
             />
           </div>
+          {/* Slider handle overlay - visual only, sits above annotations */}
+          {sliderVisible && !isSingle && !activeImage && (
+            <div
+              className="absolute inset-0 pointer-events-none z-[27]"
+              style={{ left: `${sliderPosition}%`, transform: 'translateX(-50%)', width: 0 }}
+            >
+              <div className="flex items-center justify-center h-full">
+                <div className="w-px h-full bg-white/70 shadow-[0_0_0_1px_rgba(0,0,0,0.25)]" />
+                <div className="absolute w-3 h-8 bg-white/90 rounded-full shadow-sm ring-1 ring-black/25" />
+              </div>
+            </div>
+          )}
           <AnnotationOverlay
             annotations={annotations}
             zoom={zoomPan.zoom}
@@ -457,6 +469,7 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
             showingImage={showingImage}
             isSliderMode={sliderVisible && !isSingle}
             isSingle={isSingle}
+            sliderPosition={sliderPosition}
           />
           <AnnotationControls annotations={annotations} isSingle={isSingle} />
         </div>
