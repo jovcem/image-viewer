@@ -289,8 +289,14 @@ export function AppSidebar({
                   ))}
 
                   {folders.length === 0 && localComparisons.length === 0 && (
-                    <div className="py-4 text-sm text-muted-foreground italic group-data-[collapsible=icon]:hidden">
-                      No comparisons yet
+                    <div className="py-6 flex flex-col items-center gap-3 group-data-[collapsible=icon]:hidden">
+                      <div className="rounded-full bg-muted/50 p-3">
+                        <LayersIcon className="h-5 w-5 text-muted-foreground/60" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">No comparisons yet</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1">Drop images or use + to start</p>
+                      </div>
                     </div>
                   )}
                 </>
