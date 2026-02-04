@@ -39,6 +39,7 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
   const [activeImage, setActiveImage] = useState(null); // 'A' | 'B' | null (null = slider mode)
   const [peekingOther, setPeekingOther] = useState(false); // Tab held to peek other image
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 }); // For baseScale calculation
+  const [containerEl, setContainerEl] = useState(null); // For ResizeObserver
 
   // Ref to track activeImage for keyboard handlers (avoids stale closure)
   const activeImageRef = useRef(activeImage);
@@ -67,7 +68,7 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
 
   // Track container size with ResizeObserver for baseScale calculation
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerEl) return;
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (entry) {
@@ -77,9 +78,9 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
         });
       }
     });
-    observer.observe(containerRef.current);
+    observer.observe(containerEl);
     return () => observer.disconnect();
-  }, []);
+  }, [containerEl]);
 
   // Calculate base scale (how much image is scaled by object-fit: contain)
   const baseScale = useMemo(() => {
@@ -385,6 +386,7 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
         <div
           ref={(el) => {
             containerRef.current = el;
+            setContainerEl(el);
             colorPicker.containerRef.current = el;
             annotations.containerRef.current = el;
             zoomPan.setContainerRef(el);

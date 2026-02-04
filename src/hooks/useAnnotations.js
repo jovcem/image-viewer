@@ -111,13 +111,14 @@ export function useAnnotations(enabled, zoom = 1, pan = { x: 0, y: 0 }, activeIm
     setIsDrawing(false);
     if (currentPoints.length > 0) {
       // Add stroke to the currently annotating image
+      // Compensate brush size by baseScale so visual size is independent of image scaling
       setStrokesPerImage(prev => ({
         ...prev,
-        [annotatingImage]: [...prev[annotatingImage], { points: currentPoints, color, size: brushSize }],
+        [annotatingImage]: [...prev[annotatingImage], { points: currentPoints, color, size: brushSize / baseScale }],
       }));
       setCurrentPoints([]);
     }
-  }, [isDrawing, currentPoints, color, brushSize, annotatingImage]);
+  }, [isDrawing, currentPoints, color, brushSize, annotatingImage, baseScale]);
 
   const clear = useCallback(() => {
     // Clear strokes and texts for current image only
@@ -170,6 +171,7 @@ export function useAnnotations(enabled, zoom = 1, pan = { x: 0, y: 0 }, activeIm
       setPendingText(null);
       return;
     }
+    // Compensate font size by baseScale so visual size is independent of image scaling
     setTextsPerImage(prev => ({
       ...prev,
       [annotatingImage]: [...prev[annotatingImage], {
@@ -177,11 +179,11 @@ export function useAnnotations(enabled, zoom = 1, pan = { x: 0, y: 0 }, activeIm
         y: pendingText.y,
         text: text.trim(),
         color,
-        fontSize,
+        fontSize: fontSize / baseScale,
       }],
     }));
     setPendingText(null);
-  }, [pendingText, annotatingImage, color, fontSize]);
+  }, [pendingText, annotatingImage, color, fontSize, baseScale]);
 
   const cancelText = useCallback(() => {
     setPendingText(null);
@@ -203,10 +205,11 @@ export function useAnnotations(enabled, zoom = 1, pan = { x: 0, y: 0 }, activeIm
   const textsB = textsPerImage.B || [];
 
   // Current stroke being drawn
+  // Compensate brush size by baseScale so visual size is independent of image scaling
   let currentPath = null;
   if (currentPoints.length > 0) {
     const outlinePoints = getStroke(currentPoints, {
-      size: brushSize,
+      size: brushSize / baseScale,
       thinning: 0.5,
       smoothing: 0.5,
       streamline: 0.5,
