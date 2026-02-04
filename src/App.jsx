@@ -41,6 +41,10 @@ export function App() {
     return saved !== null ? saved === 'true' : true;
   });
   const [annotationsEnabled, setAnnotationsEnabled] = useState(false);
+  const [annotationsVisible, setAnnotationsVisible] = useState(() => {
+    const saved = localStorage.getItem('annotations-visible');
+    return saved !== null ? saved === 'true' : true;
+  });
 
   // Shared zoom/pan state across all viewers
   const [sharedZoom, setSharedZoom] = useState(1);
@@ -109,9 +113,22 @@ export function App() {
         setSliderVisible(false);
         localStorage.setItem('slider-visible', 'false');
       }
+      // When enabling annotations, also make them visible
+      if (newValue && !annotationsVisible) {
+        setAnnotationsVisible(true);
+        localStorage.setItem('annotations-visible', 'true');
+      }
       return newValue;
     });
-  }, [sliderVisible]);
+  }, [sliderVisible, annotationsVisible]);
+
+  const handleAnnotationsVisibleToggle = useCallback(() => {
+    setAnnotationsVisible(prev => {
+      const newValue = !prev;
+      localStorage.setItem('annotations-visible', String(newValue));
+      return newValue;
+    });
+  }, []);
 
   const handleSidebarOpenChange = (open) => {
     setSidebarOpen(open);
@@ -355,6 +372,8 @@ export function App() {
         onSliderVisibleToggle={handleSliderVisibleToggle}
         annotationsEnabled={annotationsEnabled}
         onAnnotationsToggle={handleAnnotationsToggle}
+        annotationsVisible={annotationsVisible}
+        onAnnotationsVisibleToggle={handleAnnotationsVisibleToggle}
         onShare={handleShare}
         shareEnabled={shareConfigured && !!currentFolder}
         sharing={sharing}
@@ -384,6 +403,7 @@ export function App() {
             sharedZoomPan={sharedZoomPan}
             annotationsEnabled={annotationsEnabled}
             annotationsRef={annotationsRef}
+            annotationsVisible={annotationsVisible}
           />
         </div>
         <div className={viewMode === 'predator' ? 'h-full' : 'hidden'}>

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { PlayIcon } from 'lucide-react';
+import { PlayIcon, Columns2Icon, PipetteIcon, BugIcon, PencilIcon, ShareIcon, InfoIcon, LayersIcon, PanelLeftCloseIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ImageDropZone, useImageUrlFetcher, usePasteHandler } from './ImageDropZone';
 
@@ -139,8 +139,8 @@ export function QuickCompareForm({ onCompare }) {
   }, [fileA, onCompare]);
 
   return (
-    <div className="flex items-center justify-center h-full">
-      <div className="flex flex-col items-center gap-8 p-8">
+    <div className="flex items-center justify-center h-full overflow-auto">
+      <div className="flex flex-col items-center gap-8 p-8 pt-32 my-auto">
         <div className="flex gap-8">
           <div
             onMouseEnter={() => setHoveredZone('A')}
@@ -202,8 +202,8 @@ export function QuickCompareForm({ onCompare }) {
             </div>
           ) : (
             <>
-              <h2 className="text-lg font-medium mb-1">Quick Compare</h2>
-              <p className="text-sm text-muted-foreground">Add one or two images to view or compare</p>
+              <p className="text-sm text-muted-foreground">Add a single image to view, or two images to compare.</p>
+              <p className="text-sm text-muted-foreground">Annotate, zoom, and share your comparisons.</p>
             </>
           )}
         </div>
@@ -221,6 +221,30 @@ export function QuickCompareForm({ onCompare }) {
               <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Space + Drag</kbd>
             </div>
             <div className="flex justify-between">
+              <span className="text-muted-foreground">Show Image A</span>
+              <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">1</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Show Image B</span>
+              <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">2</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Peek other image</span>
+              <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Tab</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Slider mode</span>
+              <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">/</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Predator Mode</span>
+              <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">3</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Annotations</span>
+              <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">4</kbd>
+            </div>
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Next comparison</span>
               <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">&gt;</kbd>
             </div>
@@ -235,6 +259,69 @@ export function QuickCompareForm({ onCompare }) {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Toggle sidebar</span>
               <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">[ ]</kbd>
+            </div>
+          </div>
+        </div>
+
+        {/* Features guide */}
+        <div className="mt-4 pt-6 border-t border-border w-full max-w-lg">
+          <h3 className="text-xs font-medium text-muted-foreground mb-3 text-center uppercase tracking-wide">Features</h3>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-xs">
+            <div className="flex items-start gap-2">
+              <Columns2Icon className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div>
+                <span className="font-medium">Slider</span>
+                <p className="text-muted-foreground">Toggle compare slider on/off</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <PipetteIcon className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div>
+                <span className="font-medium">Color Picker</span>
+                <p className="text-muted-foreground">Sample colors from images</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <BugIcon className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div>
+                <span className="font-medium">Predator Mode</span>
+                <p className="text-muted-foreground">Heat map difference view</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <PencilIcon className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div>
+                <span className="font-medium">Annotate</span>
+                <p className="text-muted-foreground">Draw on images</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <ShareIcon className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div>
+                <span className="font-medium">Share</span>
+                <p className="text-muted-foreground">Share comparison via link</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <InfoIcon className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div>
+                <span className="font-medium">Info Bar</span>
+                <p className="text-muted-foreground">Show/hide image info toolbar</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <LayersIcon className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div>
+                <span className="font-medium">Annotations</span>
+                <p className="text-muted-foreground">Show/hide drawn annotations</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <PanelLeftCloseIcon className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div>
+                <span className="font-medium">Sidebar</span>
+                <p className="text-muted-foreground">Collapse/expand sidebar</p>
+              </div>
             </div>
           </div>
         </div>

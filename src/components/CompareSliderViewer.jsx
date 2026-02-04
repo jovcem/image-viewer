@@ -28,7 +28,7 @@ const bgClassMap = {
   bordered: 'bg-white',
 };
 
-export function CompareSliderViewer({ currentFolder, currentComparison, bgOption = 'default', showToolbar = true, onNewComparison, colorPickerEnabled = false, sliderVisible = true, onSliderVisibleChange, sharedZoomPan = null, annotationsEnabled = false, annotationsRef = null }) {
+export function CompareSliderViewer({ currentFolder, currentComparison, bgOption = 'default', showToolbar = true, onNewComparison, colorPickerEnabled = false, sliderVisible = true, onSliderVisibleChange, sharedZoomPan = null, annotationsEnabled = false, annotationsRef = null, annotationsVisible = true }) {
   const [images, setImages] = useState({ A: null, B: null });
   const [imageDims, setImageDims] = useState({ A: null, B: null });
   const [loading, setLoading] = useState(false);
@@ -171,6 +171,15 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, [isSingle, sliderVisible, onSliderVisibleChange]);
+
+  // Handle clicking on image info in toolbar
+  const handleImageSelect = (image) => {
+    if (isSingle) return;
+    setActiveImage(image);
+    if (sliderVisible && onSliderVisibleChange) {
+      onSliderVisibleChange(false);
+    }
+  };
 
   // Determine which image to show when slider is hidden (single image or comparison mode)
   // When peeking (Tab held), show the opposite image
@@ -435,7 +444,7 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
               />
             )}
           </div>
-          {showToolbar && <div className="z-40"><ImageInfoToolbar imageA={images.A} imageB={isSingle ? null : images.B} activeImage={(isSingle || !sliderVisible) ? showingImage : null} /></div>}
+          {showToolbar && <div className="z-40"><ImageInfoToolbar imageA={images.A} imageB={isSingle ? null : images.B} activeImage={(isSingle || !sliderVisible) ? showingImage : null} onImageSelect={!isSingle ? handleImageSelect : undefined} /></div>}
           <div className="absolute top-2 right-2 z-40">
             <ZoomControls
               zoom={zoomPan.zoom}
@@ -470,6 +479,7 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
             isSliderMode={sliderVisible && !isSingle}
             isSingle={isSingle}
             sliderPosition={sliderPosition}
+            visible={annotationsVisible}
           />
           <AnnotationControls annotations={annotations} isSingle={isSingle} />
         </div>

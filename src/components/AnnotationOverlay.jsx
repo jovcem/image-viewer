@@ -1,6 +1,11 @@
 import { cn } from '@/lib/utils';
 
-export function AnnotationOverlay({ annotations, zoom, pan, containerRef, showingImage = null, isSliderMode = false, isSingle = false, sliderPosition = 50 }) {
+export function AnnotationOverlay({ annotations, zoom, pan, containerRef, showingImage = null, isSliderMode = false, isSingle = false, sliderPosition = 50, visible = true }) {
+  // Hide all strokes when visibility is off
+  if (!visible) {
+    return null;
+  }
+
   const { strokePaths, strokePathsA, strokePathsB, currentPath, enabled, annotatingImage } = annotations;
 
   // Determine which stroke paths to show:

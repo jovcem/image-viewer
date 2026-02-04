@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { ImageIcon, XIcon, LoaderIcon } from 'lucide-react';
+import { ImagePlusIcon, XIcon, LoaderIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 
@@ -74,9 +74,9 @@ export function ImageDropZone({
 
   return (
     <div
-      className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-        dragOver ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'
-      } ${file ? 'bg-muted/50' : ''} ${isHovered ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+      className={`relative border-4 border-dashed rounded-lg p-4 text-center transition-colors ${
+        dragOver || isHovered ? 'border-primary' : 'border-muted-foreground/25'
+      } ${dragOver ? 'bg-primary/10' : ''} ${file ? 'bg-muted/50' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -113,10 +113,11 @@ export function ImageDropZone({
       ) : (
         <label className="cursor-pointer">
           <div className={`flex flex-col items-center justify-center gap-${isSmall ? '2' : '3'} ${containerSize} mx-auto`}>
-            <ImageIcon className={`${iconSize} text-muted-foreground/50`} />
-            <span className={`${titleSize} font-medium`}>Image {label}</span>
+            <ImagePlusIcon className={`${iconSize} text-muted-foreground`} />
+            <span className={`${titleSize} font-medium text-muted-foreground`}>Image {label}</span>
             <span className={`${isSmall ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
-              Drag, click, or paste
+              {label === 'B' && <span className="block">Optional - for comparison</span>}
+              Drag, click, or paste url/image
             </span>
           </div>
           <input

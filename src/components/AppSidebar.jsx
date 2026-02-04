@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon, EyeIcon, EyeOffIcon, BugIcon, PencilIcon } from 'lucide-react';
+import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon, EyeIcon, EyeOffIcon, BugIcon, PencilIcon, Columns2Icon } from 'lucide-react';
 import { ShareButton } from './ShareButton';
 import {
   Sidebar,
@@ -83,6 +83,8 @@ export function AppSidebar({
   onSliderVisibleToggle,
   annotationsEnabled,
   onAnnotationsToggle,
+  annotationsVisible,
+  onAnnotationsVisibleToggle,
   onShare,
   shareEnabled,
   sharing,
@@ -160,7 +162,7 @@ export function AppSidebar({
               className={cn("h-8 w-8 cursor-pointer", !sliderVisible && "opacity-50")}
               title={sliderVisible ? "Hide slider (show single image)" : "Show slider (compare mode)"}
             >
-              {sliderVisible ? <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
+              <Columns2Icon className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
@@ -329,6 +331,15 @@ export function AppSidebar({
               title={showToolbar ? "Hide info toolbar" : "Show info toolbar"}
             >
               <InfoIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onAnnotationsVisibleToggle}
+              className={cn("h-8 w-8 cursor-pointer", !annotationsVisible && "opacity-50")}
+              title={annotationsVisible ? "Hide annotations" : "Show annotations"}
+            >
+              <LayersIcon className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"

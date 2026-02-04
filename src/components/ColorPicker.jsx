@@ -17,7 +17,7 @@ export function useColorPicker(imageA, imageB, enabled = false, zoom = 1, pan = 
 
   // Load images into canvases
   useEffect(() => {
-    if (!imageA || !imageB) return;
+    if (!imageA) return;
 
     const loadImage = (src, canvasRef, imgRef) => {
       return new Promise((resolve) => {
@@ -38,10 +38,11 @@ export function useColorPicker(imageA, imageB, enabled = false, zoom = 1, pan = 
       });
     };
 
-    Promise.all([
-      loadImage(imageA, canvasARef, imgARef),
-      loadImage(imageB, canvasBRef, imgBRef),
-    ]);
+    const loads = [loadImage(imageA, canvasARef, imgARef)];
+    if (imageB) {
+      loads.push(loadImage(imageB, canvasBRef, imgBRef));
+    }
+    Promise.all(loads);
 
     return () => {
       canvasARef.current = null;

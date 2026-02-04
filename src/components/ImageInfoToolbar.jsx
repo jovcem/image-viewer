@@ -22,7 +22,7 @@ function getFormatFromUrl(url) {
   return null;
 }
 
-function ImageInfo({ label, url, onInfoLoaded, isActive }) {
+function ImageInfo({ label, url, onInfoLoaded, isActive, onClick }) {
   const [info, setInfo] = useState({ width: null, height: null, size: null, format: null, loading: true });
 
   useEffect(() => {
@@ -96,11 +96,24 @@ function ImageInfo({ label, url, onInfoLoaded, isActive }) {
   const sizeStr = formatFileSize(info.size);
   if (sizeStr) parts.push(sizeStr);
 
+  const handleClick = (e) => {
+    if (onClick) {
+      e.stopPropagation();
+      onClick();
+    }
+  };
+
   return (
-    <div className={cn(
-      "flex items-center gap-2 px-2 py-0.5 rounded text-xs transition-all whitespace-nowrap shrink-0",
-      isActive ? "bg-muted/50 ring-1 ring-primary" : "bg-muted/50"
-    )}>
+    <div
+      onClick={handleClick}
+      onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      className={cn(
+        "flex items-center gap-2 px-2 py-0.5 rounded text-xs transition-all whitespace-nowrap shrink-0",
+        onClick && "cursor-pointer hover:bg-muted",
+        isActive ? "bg-muted/50 ring-1 ring-primary" : "bg-muted/50"
+      )}
+    >
       <span className="font-medium text-foreground">{label}</span>
       {info.loading ? (
         <span className="text-muted-foreground">Loading...</span>
@@ -123,7 +136,7 @@ function Warning({ children, visible }) {
   );
 }
 
-export function ImageInfoToolbar({ imageA, imageB, activeImage = null }) {
+export function ImageInfoToolbar({ imageA, imageB, activeImage = null, onImageSelect }) {
   const [infoA, setInfoA] = useState({ width: null, height: null, format: null });
   const [infoB, setInfoB] = useState({ width: null, height: null, format: null });
 
@@ -150,8 +163,8 @@ export function ImageInfoToolbar({ imageA, imageB, activeImage = null }) {
 
   return (
     <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-start gap-3 px-2 py-1 min-h-[32px] bg-background/80 backdrop-blur-sm border-t border-border overflow-hidden">
-      <ImageInfo label="A" url={imageA} onInfoLoaded={setInfoA} isActive={activeImage === 'A'} />
-      <ImageInfo label="B" url={imageB} onInfoLoaded={setInfoB} isActive={activeImage === 'B'} />
+      <ImageInfo label="A" url={imageA} onInfoLoaded={setInfoA} isActive={activeImage === 'A'} onClick={onImageSelect ? () => onImageSelect('A') : undefined} />
+      <ImageInfo label="B" url={imageB} onInfoLoaded={setInfoB} isActive={activeImage === 'B'} onClick={onImageSelect ? () => onImageSelect('B') : undefined} />
       <Warning visible={formatMismatch}>Format mismatch</Warning>
       <Warning visible={ratioMismatch}>Aspect ratio mismatch</Warning>
       <Warning visible={resolutionMismatch}>Resolution mismatch</Warning>
