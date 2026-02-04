@@ -156,6 +156,43 @@ export function App() {
     resetZoom();
   }, [resetZoom]);
 
+  // Load a parent share (previous version)
+  const handleLoadParent = useCallback(async (parentId, depth = 1) => {
+    // Check if already loaded
+    const existingId = `shared-${parentId}`;
+    const existing = localComparisons.find(c => c.id === existingId);
+    if (existing) {
+      setCurrentFolder(existingId);
+      resetZoom();
+      return;
+    }
+
+    try {
+      const shared = await loadSharedComparison(parentId);
+      // Strip any existing depth prefix from the name before adding new one
+      const baseName = (shared.name || (shared.isSingle ? 'Shared Image' : 'Shared Comparison')).replace(/^-\d+ /, '');
+      const comparison = {
+        id: `shared-${shared.id}`,
+        name: `-${depth} ${baseName}`,
+        isLocal: true,
+        isSingle: shared.isSingle,
+        images: {
+          A: { name: 'A', url: shared.imageA },
+          B: shared.isSingle ? null : { name: 'B', url: shared.imageB },
+        },
+        isShared: true,
+        annotations: shared.annotations,
+        sourceShareId: shared.id,
+        parentId: shared.parentId,
+      };
+      setLocalComparisons(prev => [comparison, ...prev]);
+      setCurrentFolder(comparison.id);
+      resetZoom();
+    } catch (err) {
+      console.error('Failed to load parent comparison:', err);
+    }
+  }, [localComparisons, loadSharedComparison, resetZoom]);
+
   // Sidebar click resets zoom, keyboard navigation preserves it
   const handleFolderSelect = useCallback((folder) => {
     setCurrentFolder(folder);
@@ -217,6 +254,8 @@ export function App() {
           },
           isShared: true,
           annotations: shared.annotations,
+          sourceShareId: shared.id,
+          parentId: shared.parentId,
         };
         setLocalComparisons(prev => {
           // Don't add if already exists
@@ -275,11 +314,15 @@ export function App() {
     // Get annotations if available (now in { A: [], B: [] } format)
     const annotations = annotationsRef.current?.strokes || null;
 
+    // If re-sharing a shared comparison, link to the original as parent
+    const parentId = localComp?.sourceShareId || null;
+
     return shareComparison(imageAUrl, imageBUrl, {
       name,
       annotations,
       viewMode,
       isSingle,
+      parentId,
     });
   }, [currentComparison, currentFolder, localComparisons, folderImages, viewMode, shareComparison]);
 
@@ -377,6 +420,7 @@ export function App() {
         shareEnabled={shareConfigured && !!currentFolder}
         sharing={sharing}
         uploadProgress={uploadProgress}
+        onLoadParent={handleLoadParent}
       />
       <SidebarInset className="h-screen relative">
         <div className={viewMode === 'slider' ? 'h-full' : 'hidden'}>

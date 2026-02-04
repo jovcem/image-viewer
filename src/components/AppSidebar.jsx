@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon, EyeIcon, EyeOffIcon, BugIcon, PencilIcon, Columns2Icon } from 'lucide-react';
+import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon, EyeIcon, EyeOffIcon, BugIcon, HighlighterIcon, Columns2Icon, PaletteIcon, MoreVerticalIcon, HistoryIcon } from 'lucide-react';
 import { ShareButton } from './ShareButton';
 import {
   Sidebar,
@@ -7,7 +7,6 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarFooter,
   SidebarMenu,
   SidebarMenuButton,
@@ -26,6 +25,12 @@ import {
 import { ThemeToggle } from './ThemeToggle';
 import { NewComparisonDialog } from './NewComparisonDialog';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 const bgOptions = [
@@ -89,6 +94,7 @@ export function AppSidebar({
   shareEnabled,
   sharing,
   uploadProgress,
+  onLoadParent,
 }) {
   const { toggleSidebar, open } = useSidebar();
   const [openFolders, setOpenFolders] = useState({});
@@ -102,47 +108,11 @@ export function AppSidebar({
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border h-screen">
-      <SidebarHeader className="border-b border-sidebar-border">
-        <SidebarGroupLabel>Viewer</SidebarGroupLabel>
-        <div className="flex flex-col gap-1 px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
-          <Collapsible open={openFolders['slider-bg']} onOpenChange={() => toggleFolder('slider-bg')}>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onViewModeChange('slider')}
-                className={cn(
-                  "justify-start gap-2 h-8 px-2 flex-1 cursor-pointer group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
-                  (viewMode === 'slider' || viewMode === 'predator') && "bg-accent"
-                )}
-              >
-                <SplitIcon className="h-4 w-4 shrink-0" />
-                <span className="group-data-[collapsible=icon]:hidden">Slider</span>
-              </Button>
-              <CollapsibleTrigger asChild>
-                <button className="h-8 w-8 flex items-center justify-center hover:bg-muted rounded group-data-[collapsible=icon]:hidden">
-                  <SettingsIcon className="h-4 w-4 shrink-0" />
-                </button>
-              </CollapsibleTrigger>
-            </div>
-            <CollapsibleContent>
-              <div className="pl-6 pr-2 py-1 flex flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
-                {bgOptions.map(option => (
-                  <BgOption
-                    key={option.id}
-                    option={option}
-                    isSelected={bgOption === option.id}
-                    onSelect={onBgOptionChange}
-                  />
-                ))}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
-      </SidebarHeader>
       <SidebarContent className="flex-1">
         <SidebarGroup>
-          <div className="flex items-center gap-1 px-2 pb-3 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
+          <SidebarGroupLabel className="mb-2">Image Viewer</SidebarGroupLabel>
+          <div className="flex items-center gap-1 pb-3 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center">
+            {/* View modes group */}
             <Button
               variant="ghost"
               size="icon"
@@ -155,6 +125,17 @@ export function AppSidebar({
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => onViewModeChange(viewMode === 'predator' ? 'slider' : 'predator')}
+              className={cn("h-8 w-8 cursor-pointer", viewMode !== 'predator' && "opacity-50")}
+              title="Toggle predator heat map view (3)"
+            >
+              <BugIcon className="h-4 w-4" />
+            </Button>
+            <div className="h-4 w-px bg-border mx-1 group-data-[collapsible=icon]:h-px group-data-[collapsible=icon]:w-4 group-data-[collapsible=icon]:my-1" />
+            {/* Analysis tools group */}
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onColorPickerToggle}
               className={cn("h-8 w-8 cursor-pointer", !colorPickerEnabled && "opacity-50")}
               title={colorPickerEnabled ? "Disable color picker" : "Enable color picker"}
@@ -164,21 +145,14 @@ export function AppSidebar({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => onViewModeChange(viewMode === 'predator' ? 'slider' : 'predator')}
-              className={cn("h-8 w-8 cursor-pointer", viewMode !== 'predator' && "opacity-50")}
-              title="Toggle predator heat map view (3)"
-            >
-              <BugIcon className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
               onClick={onAnnotationsToggle}
               className={cn("h-8 w-8 cursor-pointer", !annotationsEnabled && "opacity-50")}
               title={annotationsEnabled ? "Disable annotations (4)" : "Enable annotations (4)"}
             >
-              <PencilIcon className="h-4 w-4" />
+              <HighlighterIcon className="h-4 w-4" />
             </Button>
+            <div className="h-4 w-px bg-border mx-1 group-data-[collapsible=icon]:h-px group-data-[collapsible=icon]:w-4 group-data-[collapsible=icon]:my-1" />
+            {/* Action group */}
             <ShareButton
               onShare={onShare}
               disabled={!shareEnabled}
@@ -186,7 +160,7 @@ export function AppSidebar({
               uploadProgress={uploadProgress}
             />
           </div>
-          <div className="px-2 pt-1 pb-4 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+          <div className="pt-1 pb-4 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
             <NewComparisonDialog onCreated={onNewComparison} />
           </div>
           <SidebarGroupContent>
@@ -255,24 +229,62 @@ export function AppSidebar({
                       onOpenChange={() => toggleFolder(comp.id)}
                     >
                       <SidebarMenuItem>
-                        <SidebarMenuButton
-                          isActive={currentFolder === comp.id}
-                          onClick={() => onFolderSelect(comp.id)}
-                          className="cursor-pointer"
-                          tooltip={comp.name}
-                        >
-                          <CollapsibleTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <ChevronRightIcon className={cn(
-                              "h-4 w-4 shrink-0 transition-transform cursor-pointer hover:text-foreground group-data-[collapsible=icon]:hidden",
-                              openFolders[comp.id] && "rotate-90"
-                            )} />
-                          </CollapsibleTrigger>
-                          <span className="hidden group-data-[collapsible=icon]:inline text-xs font-medium w-4 text-center">
-                            {String.fromCharCode(65 + folders.length + index)}
-                          </span>
-                          <UploadIcon className="h-3 w-3 text-muted-foreground shrink-0 group-data-[collapsible=icon]:hidden" />
-                          <span className="group-data-[collapsible=icon]:hidden">{comp.name}</span>
-                        </SidebarMenuButton>
+                        <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center">
+                          <SidebarMenuButton
+                            isActive={currentFolder === comp.id}
+                            onClick={() => onFolderSelect(comp.id)}
+                            className="cursor-pointer flex-1"
+                            tooltip={comp.name}
+                          >
+                            <CollapsibleTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <ChevronRightIcon className={cn(
+                                "h-4 w-4 shrink-0 transition-transform cursor-pointer hover:text-foreground group-data-[collapsible=icon]:hidden",
+                                openFolders[comp.id] && "rotate-90"
+                              )} />
+                            </CollapsibleTrigger>
+                            <span className="hidden group-data-[collapsible=icon]:inline text-xs font-medium w-4 text-center">
+                              {String.fromCharCode(65 + folders.length + index)}
+                            </span>
+                            <UploadIcon className="h-3 w-3 text-muted-foreground shrink-0 group-data-[collapsible=icon]:hidden" />
+                            {(() => {
+                              const match = comp.name.match(/^(-\d+) (.+)$/);
+                              if (match) {
+                                return (
+                                  <span className="group-data-[collapsible=icon]:hidden truncate">
+                                    <span className="text-muted-foreground text-xs mr-1">{match[1]}</span>
+                                    {match[2]}
+                                  </span>
+                                );
+                              }
+                              return <span className="group-data-[collapsible=icon]:hidden truncate">{comp.name}</span>;
+                            })()}
+                          </SidebarMenuButton>
+                          {comp.parentId && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 shrink-0 group-data-[collapsible=icon]:hidden"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVerticalIcon className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => {
+                                  // Calculate depth based on current comparison's name prefix
+                                  const match = comp.name.match(/^-(\d+) /);
+                                  const currentDepth = match ? parseInt(match[1], 10) : 0;
+                                  onLoadParent(comp.parentId, currentDepth + 1);
+                                }}>
+                                  <HistoryIcon className="h-4 w-4" />
+                                  Load previous version
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
                         <CollapsibleContent>
                           <SidebarMenuSub>
                             <SidebarMenuSubItem>
@@ -296,7 +308,7 @@ export function AppSidebar({
                   ))}
 
                   {folders.length === 0 && localComparisons.length === 0 && (
-                    <div className="px-2 py-4 text-sm text-muted-foreground italic group-data-[collapsible=icon]:hidden">
+                    <div className="py-4 text-sm text-muted-foreground italic group-data-[collapsible=icon]:hidden">
                       No comparisons yet
                     </div>
                   )}
@@ -307,41 +319,65 @@ export function AppSidebar({
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">
-        <div className="flex items-center justify-between px-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
+        <div className="flex flex-col gap-1 group-data-[collapsible=icon]:items-center">
           <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">Settings</span>
-          <div className="flex items-center gap-1 group-data-[collapsible=icon]:flex-col">
-            <ThemeToggle theme={theme} onToggle={onThemeToggle} />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onShowToolbarChange(!showToolbar)}
-              className={cn("h-8 w-8 cursor-pointer", !showToolbar && "opacity-50")}
-              title={showToolbar ? "Hide info toolbar" : "Show info toolbar"}
-            >
-              <InfoIcon className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onAnnotationsVisibleToggle}
-              className={cn("h-8 w-8 cursor-pointer", !annotationsVisible && "opacity-50")}
-              title={annotationsVisible ? "Hide annotations" : "Show annotations"}
-            >
-              <LayersIcon className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleSidebar}
-              className="h-8 w-8 cursor-pointer"
-            >
-              {open ? (
-                <PanelLeftCloseIcon className="h-4 w-4" />
-              ) : (
-                <PanelLeftIcon className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+          <Collapsible open={openFolders['bg-options']} onOpenChange={() => toggleFolder('bg-options')}>
+            <div className="flex items-center gap-1 group-data-[collapsible=icon]:flex-col">
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-8 w-8 cursor-pointer", openFolders['bg-options'] && "bg-accent")}
+                  title="Background options"
+                >
+                  <PaletteIcon className="h-4 w-4" />
+                </Button>
+              </CollapsibleTrigger>
+              <ThemeToggle theme={theme} onToggle={onThemeToggle} />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onShowToolbarChange(!showToolbar)}
+                className={cn("h-8 w-8 cursor-pointer", !showToolbar && "opacity-50")}
+                title={showToolbar ? "Hide info toolbar" : "Show info toolbar"}
+              >
+                <InfoIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onAnnotationsVisibleToggle}
+                className={cn("h-8 w-8 cursor-pointer", !annotationsVisible && "opacity-50")}
+                title={annotationsVisible ? "Hide annotations" : "Show annotations"}
+              >
+                <LayersIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleSidebar}
+                className="h-8 w-8 cursor-pointer"
+              >
+                {open ? (
+                  <PanelLeftCloseIcon className="h-4 w-4" />
+                ) : (
+                  <PanelLeftIcon className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <CollapsibleContent>
+              <div className="py-1 flex flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
+                {bgOptions.map(option => (
+                  <BgOption
+                    key={option.id}
+                    option={option}
+                    isSelected={bgOption === option.id}
+                    onSelect={onBgOptionChange}
+                  />
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </SidebarFooter>
     </Sidebar>

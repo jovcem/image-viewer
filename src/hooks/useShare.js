@@ -142,6 +142,7 @@ export function useShare() {
           annotations: metadata.annotations || null,
           view_mode: metadata.viewMode || 'slider',
           is_single: isSingle,
+          parent_id: metadata.parentId || null,
         });
 
       if (dbError) throw new Error(`Failed to save comparison: ${dbError.message}`);
@@ -202,6 +203,7 @@ export function useShare() {
         annotations: data.annotations,
         viewMode: data.view_mode,
         createdAt: data.created_at,
+        parentId: data.parent_id,
       };
     } catch (err) {
       setError(err.message);
