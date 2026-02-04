@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon, EyeIcon, EyeOffIcon, BugIcon, HighlighterIcon, Columns2Icon, PaletteIcon, MoreVerticalIcon, HistoryIcon } from 'lucide-react';
+import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon, EyeIcon, EyeOffIcon, BugIcon, HighlighterIcon, Columns2Icon, PaletteIcon, HistoryIcon } from 'lucide-react';
 import { ShareButton } from './ShareButton';
 import {
   Sidebar,
@@ -25,12 +25,6 @@ import {
 import { ThemeToggle } from './ThemeToggle';
 import { NewComparisonDialog } from './NewComparisonDialog';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 const bgOptions = [
@@ -258,32 +252,19 @@ export function AppSidebar({
                               }
                               return <span className="group-data-[collapsible=icon]:hidden truncate">{comp.name}</span>;
                             })()}
-                          </SidebarMenuButton>
-                          {comp.parentId && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 shrink-0 group-data-[collapsible=icon]:hidden"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MoreVerticalIcon className="h-3 w-3" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => {
-                                  // Calculate depth based on current comparison's name prefix
+                            {comp.parentId && (
+                              <HistoryIcon
+                                className="h-3 w-3 ml-auto shrink-0 text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:hidden"
+                                title="Load previous version"
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   const match = comp.name.match(/^-(\d+) /);
                                   const currentDepth = match ? parseInt(match[1], 10) : 0;
                                   onLoadParent(comp.parentId, currentDepth + 1);
-                                }}>
-                                  <HistoryIcon className="h-4 w-4" />
-                                  Load previous version
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
+                                }}
+                              />
+                            )}
+                          </SidebarMenuButton>
                         </div>
                         <CollapsibleContent>
                           <SidebarMenuSub>

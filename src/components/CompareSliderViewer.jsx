@@ -38,6 +38,7 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
   const [sliderPosition, setSliderPosition] = useState(50);
   const [activeImage, setActiveImage] = useState(null); // 'A' | 'B' | null (null = slider mode)
   const [peekingOther, setPeekingOther] = useState(false); // Tab held to peek other image
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 }); // For baseScale calculation
 
   // Ref to track activeImage for keyboard handlers (avoids stale closure)
   const activeImageRef = useRef(activeImage);
@@ -64,11 +65,44 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
   // When peeking, we view the other image but still annotate the selected one
   const viewingImage = peekingOther ? (activeImage === 'A' ? 'B' : 'A') : (activeImage || 'A');
 
+  // Track container size with ResizeObserver for baseScale calculation
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setContainerSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Calculate base scale (how much image is scaled by object-fit: contain)
+  const baseScale = useMemo(() => {
+    if (!containerSize.width || !containerSize.height || !imageDims.A) return 1;
+    const containerWidth = containerSize.width;
+    const containerHeight = containerSize.height;
+    const imageAspect = imageDims.A.width / imageDims.A.height;
+    const containerAspect = containerWidth / containerHeight;
+
+    if (imageAspect > containerAspect) {
+      // Image is wider than container - width-constrained
+      return containerWidth / imageDims.A.width;
+    } else {
+      // Image is taller than container - height-constrained
+      return containerHeight / imageDims.A.height;
+    }
+  }, [imageDims.A, containerSize]);
+
   const zoomPan = useZoomPan(imageDims.A, imageDims.B, containerRef, sharedZoomPan);
   const colorPicker = useColorPicker(images.A, images.B, colorPickerEnabled, zoomPan.zoom, zoomPan.pan);
   // Pass activeImage to annotations so it knows which image to annotate
   // Note: annotate the activeImage (not viewingImage) - peeking doesn't change what we're annotating
-  const annotations = useAnnotations(annotationsEnabled, zoomPan.zoom, zoomPan.pan, activeImage || 'A', isSingle, sliderVisible);
+  const annotations = useAnnotations(annotationsEnabled, zoomPan.zoom, zoomPan.pan, activeImage || 'A', isSingle, sliderVisible, baseScale);
 
   // Expose annotations to parent via ref for sharing
   useEffect(() => {
@@ -86,7 +120,15 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
 
     if (currentComparison?.annotations) {
       // Load annotations for this comparison
-      annotations.setStrokes(currentComparison.annotations);
+      // Support both new format { strokes, texts } and old format (strokes directly)
+      const ann = currentComparison.annotations;
+      if (ann.strokes !== undefined || ann.texts !== undefined) {
+        // New format with strokes and texts
+        annotations.setStrokes(ann.strokes, ann.texts);
+      } else {
+        // Old format - strokes directly
+        annotations.setStrokes(ann);
+      }
     } else {
       // Clear annotations when switching to comparison without annotations
       annotations.clearAll();
@@ -475,6 +517,7 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
             annotations={annotations}
             zoom={zoomPan.zoom}
             pan={zoomPan.pan}
+            baseScale={baseScale}
             showingImage={showingImage}
             isSliderMode={sliderVisible && !isSingle}
             isSingle={isSingle}

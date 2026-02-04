@@ -19,7 +19,7 @@ export function App() {
   const annotationsRef = useRef(null);
   const shareLoadedRef = useRef(null);
   const prevFolderRef = useRef(null);
-  const [comparisonAnnotations, setComparisonAnnotations] = useState({}); // { [compId]: { A: [], B: [] } }
+  const [comparisonAnnotations, setComparisonAnnotations] = useState({}); // { [compId]: { strokes: { A: [], B: [] }, texts: { A: [], B: [] } } }
   const [bgOption, setBgOption] = useState(() => {
     return localStorage.getItem('viewer-bg-option') || 'default';
   });
@@ -67,13 +67,16 @@ export function App() {
     const prevFolder = prevFolderRef.current;
 
     // Save annotations from previous comparison
-    if (prevFolder && annotationsRef.current?.strokes) {
+    if (prevFolder && annotationsRef.current) {
       const strokes = annotationsRef.current.strokes;
+      const texts = annotationsRef.current.texts;
       // Only save if there are actual annotations
-      if (strokes.A?.length > 0 || strokes.B?.length > 0) {
+      const hasStrokes = strokes?.A?.length > 0 || strokes?.B?.length > 0;
+      const hasTexts = texts?.A?.length > 0 || texts?.B?.length > 0;
+      if (hasStrokes || hasTexts) {
         setComparisonAnnotations(prev => ({
           ...prev,
-          [prevFolder]: strokes,
+          [prevFolder]: { strokes, texts },
         }));
       }
     }
@@ -312,7 +315,9 @@ export function App() {
     const name = localComp?.name || currentFolder || (isSingle ? 'Image' : 'Comparison');
 
     // Get annotations if available (now in { A: [], B: [] } format)
-    const annotations = annotationsRef.current?.strokes || null;
+    const strokes = annotationsRef.current?.strokes || null;
+    const texts = annotationsRef.current?.texts || null;
+    const annotations = (strokes || texts) ? { strokes, texts } : null;
 
     // If re-sharing a shared comparison, link to the original as parent
     const parentId = localComp?.sourceShareId || null;
