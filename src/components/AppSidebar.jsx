@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon, EyeIcon, EyeOffIcon, BugIcon, HighlighterIcon, Columns2Icon, PaletteIcon, HistoryIcon } from 'lucide-react';
+import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon, EyeIcon, EyeOffIcon, BugIcon, PencilIcon, Columns2Icon, PaletteIcon, HistoryIcon } from 'lucide-react';
 import { ShareButton } from './ShareButton';
 import {
   Sidebar,
@@ -143,7 +143,7 @@ export function AppSidebar({
               className={cn("h-8 w-8 cursor-pointer", !annotationsEnabled && "opacity-50")}
               title={annotationsEnabled ? "Disable annotations (4)" : "Enable annotations (4)"}
             >
-              <HighlighterIcon className="h-4 w-4" />
+              <PencilIcon className="h-4 w-4" />
             </Button>
             <div className="h-4 w-px bg-border mx-1 group-data-[collapsible=icon]:h-px group-data-[collapsible=icon]:w-4 group-data-[collapsible=icon]:my-1" />
             {/* Action group */}

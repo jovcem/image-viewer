@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 
 const bgClassMap = {
   default: 'bg-background',
-  black: 'bg-black',
+  black: 'bg-black-dotted',
   white: 'bg-white',
   checked: 'bg-checked',
   grey: 'bg-neutral-500',

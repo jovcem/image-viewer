@@ -210,7 +210,7 @@ export function QuickCompareForm({ onCompare }) {
 
         {/* Controls tutorial */}
         <div className="mt-4 pt-6 border-t border-border w-full max-w-lg">
-          <h3 className="text-xs font-medium text-muted-foreground mb-3 text-center uppercase tracking-wide">Controls</h3>
+          <h3 className="text-xs font-medium text-muted-foreground mb-5 text-center uppercase tracking-wide">Controls</h3>
           <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Zoom</span>
@@ -237,7 +237,7 @@ export function QuickCompareForm({ onCompare }) {
               <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">/</kbd>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Predator Mode</span>
+              <span className="text-muted-foreground">Predator View</span>
               <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">3</kbd>
             </div>
             <div className="flex justify-between">
@@ -265,7 +265,7 @@ export function QuickCompareForm({ onCompare }) {
 
         {/* Features guide */}
         <div className="mt-4 pt-6 border-t border-border w-full max-w-lg">
-          <h3 className="text-xs font-medium text-muted-foreground mb-3 text-center uppercase tracking-wide">Features</h3>
+          <h3 className="text-xs font-medium text-muted-foreground mb-5 text-center uppercase tracking-wide">Features</h3>
           <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-xs">
             <div className="flex items-start gap-2">
               <Columns2Icon className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
@@ -284,7 +284,7 @@ export function QuickCompareForm({ onCompare }) {
             <div className="flex items-start gap-2">
               <BugIcon className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
               <div>
-                <span className="font-medium">Predator Mode</span>
+                <span className="font-medium">Predator View</span>
                 <p className="text-muted-foreground">Heat map difference view</p>
               </div>
             </div>

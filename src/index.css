@@ -139,6 +139,13 @@
   background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
 }
 
+/* Black background with subtle dot pattern */
+.bg-black-dotted {
+  background-color: #000000;
+  background-image: radial-gradient(circle, #333333 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
 /* Modern scrollbar styling */
 * {
   scrollbar-width: thin;
