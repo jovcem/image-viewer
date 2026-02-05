@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 // Text input component for placing text annotations
-function TextInput({ x, y, effectiveScale, pan, onConfirm, onCancel, color, fontSize }) {
+function TextInput({ x, y, effectiveScale, zoom, pan, onConfirm, onCancel, color, fontSize }) {
   const [text, setText] = useState('');
   const inputRef = useRef(null);
 
@@ -44,7 +44,7 @@ function TextInput({ x, y, effectiveScale, pan, onConfirm, onCancel, color, font
           className="bg-transparent border border-white/30 rounded-lg px-3 py-2 outline-none focus:border-white/50 transition-all duration-200"
           style={{
             color: color,
-            fontSize: `${Math.max(14, fontSize * 0.6)}px`,
+            fontSize: `${fontSize * zoom}px`,
             minWidth: '140px',
           }}
         />
@@ -56,7 +56,7 @@ function TextInput({ x, y, effectiveScale, pan, onConfirm, onCancel, color, font
   );
 }
 
-export function AnnotationOverlay({ annotations, zoom, pan, baseScale = 1, containerRef, showingImage = null, isSliderMode = false, isSingle = false, sliderPosition = 50, visible = true }) {
+export function AnnotationOverlay({ annotations, zoom, pan, baseScale = 1, containerRef, showingImage = null, isSliderMode = false, isSingle = false, sliderPosition = 50, visible = true, isPanning = false }) {
   // Hide all strokes when visibility is off
   if (!visible) {
     return null;
@@ -114,6 +114,7 @@ export function AnnotationOverlay({ annotations, zoom, pan, baseScale = 1, conta
             <g style={{
               transform: `translate(calc(50% + ${pan.x}px), calc(50% + ${pan.y}px)) scale(${effectiveScale})`,
               transformOrigin: '0 0',
+              transition: isPanning ? 'none' : 'transform 0.1s ease-out',
             }}>
               {strokePathsA.map((stroke, i) => (
                 <path key={`a-${i}`} d={stroke.path} fill={stroke.color}
@@ -138,6 +139,7 @@ export function AnnotationOverlay({ annotations, zoom, pan, baseScale = 1, conta
             <g style={{
               transform: `translate(calc(50% + ${pan.x}px), calc(50% + ${pan.y}px)) scale(${effectiveScale})`,
               transformOrigin: '0 0',
+              transition: isPanning ? 'none' : 'transform 0.1s ease-out',
             }}>
               {strokePathsB.map((stroke, i) => (
                 <path key={`b-${i}`} d={stroke.path} fill={stroke.color}
@@ -160,6 +162,7 @@ export function AnnotationOverlay({ annotations, zoom, pan, baseScale = 1, conta
             <g style={{
               transform: `translate(calc(50% + ${pan.x}px), calc(50% + ${pan.y}px)) scale(${effectiveScale})`,
               transformOrigin: '0 0',
+              transition: isPanning ? 'none' : 'transform 0.1s ease-out',
             }}>
               <path d={currentPath.path} fill={currentPath.color}
                 strokeLinejoin="round" strokeLinecap="round" />
@@ -172,6 +175,7 @@ export function AnnotationOverlay({ annotations, zoom, pan, baseScale = 1, conta
             x={pendingText.x}
             y={pendingText.y}
             effectiveScale={effectiveScale}
+            zoom={zoom}
             pan={pan}
             onConfirm={confirmText}
             onCancel={cancelText}
@@ -201,6 +205,7 @@ export function AnnotationOverlay({ annotations, zoom, pan, baseScale = 1, conta
           style={{
             transform: `translate(calc(50% + ${pan.x}px), calc(50% + ${pan.y}px)) scale(${effectiveScale})`,
             transformOrigin: '0 0',
+            transition: isPanning ? 'none' : 'transform 0.1s ease-out',
           }}
         >
           {pathsToRender.map((stroke, i) => (
@@ -242,6 +247,7 @@ export function AnnotationOverlay({ annotations, zoom, pan, baseScale = 1, conta
           x={pendingText.x}
           y={pendingText.y}
           effectiveScale={effectiveScale}
+          zoom={zoom}
           pan={pan}
           onConfirm={confirmText}
           onCancel={cancelText}

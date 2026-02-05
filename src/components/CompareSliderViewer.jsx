@@ -525,6 +525,7 @@ export function CompareSliderViewer({ currentFolder, currentComparison, bgOption
             isSingle={isSingle}
             sliderPosition={sliderPosition}
             visible={annotationsVisible}
+            isPanning={zoomPan.isPanning}
           />
           <AnnotationControls annotations={annotations} isSingle={isSingle} />
         </div>
