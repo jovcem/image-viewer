@@ -382,7 +382,7 @@ export function App() {
       }
 
       const key = e.key.toUpperCase();
-      if (key >= 'A' && key <= 'Z') {
+      if (key.length === 1 && key >= 'A' && key <= 'Z') {
         const index = key.charCodeAt(0) - 65; // A=0, B=1, etc.
         if (index < allComparisons.length) {
           setCurrentFolder(allComparisons[index]);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FolderIcon, PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, SplitIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, SettingsIcon, InfoIcon, PipetteIcon, EyeIcon, EyeOffIcon, BugIcon, PencilIcon, Columns2Icon, PaletteIcon, HistoryIcon } from 'lucide-react';
+import { PanelLeftCloseIcon, PanelLeftIcon, LayersIcon, ImageIcon, ChevronRightIcon, UploadIcon, CheckIcon, InfoIcon, PipetteIcon, BugIcon, PencilIcon, Columns2Icon, PaletteIcon, HistoryIcon } from 'lucide-react';
 import { ShareButton } from './ShareButton';
 import {
   Sidebar,

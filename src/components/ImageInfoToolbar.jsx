@@ -162,7 +162,7 @@ export function ImageInfoToolbar({ imageA, imageB, activeImage = null, onImageSe
   }
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-start gap-3 px-2 py-1 min-h-[32px] bg-background/80 backdrop-blur-sm border-t border-border overflow-hidden">
+    <div className="absolute bottom-0 left-0 right-0 z-50 flex items-center justify-start gap-3 px-2 py-1 min-h-[32px] bg-background/80 backdrop-blur-sm border-t border-border overflow-hidden">
       <ImageInfo label="A" url={imageA} onInfoLoaded={setInfoA} isActive={activeImage === 'A'} onClick={onImageSelect ? () => onImageSelect('A') : undefined} />
       <ImageInfo label="B" url={imageB} onInfoLoaded={setInfoB} isActive={activeImage === 'B'} onClick={onImageSelect ? () => onImageSelect('B') : undefined} />
       <Warning visible={formatMismatch}>Format mismatch</Warning>

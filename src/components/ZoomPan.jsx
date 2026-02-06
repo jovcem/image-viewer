@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { ZoomInIcon, ZoomOutIcon, Maximize2Icon } from 'lucide-react';
+import { ZoomInIcon, ZoomOutIcon } from 'lucide-react';
 
 export function useZoomPan(imageDimsA, imageDimsB, containerRef, sharedState = null) {
   // Use shared state if provided, otherwise use local state
